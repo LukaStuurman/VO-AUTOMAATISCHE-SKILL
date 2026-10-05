@@ -1,0 +1,24 @@
+{
+ "kader":2024,
+ "source":"Enexis-Kabelchecker Eea-0205.K 1.0 - Copy.xlsx; commit 4009601e15fa4b1b6926380395132b0c1630ce21",
+ "columns":["category","cable_consumption_A","cable_generation_A","trafo_consumption_A","trafo_generation_A"],
+ "rows":[
+  ["Type 1 vrijstaand",10.3,9.8,9.5,9.5],
+  ["Type 1 twee onder een kap",8.8,7.5,8,7.3],
+  ["Type 1 rijtjeswoning",7.8,7.5,7,7.3],
+  ["Type 1 onbekend woningtype",8.4,7.5,7.6,7.3],
+  ["Type 2 vrijstaand",4.1,9.8,3.3,9.5],
+  ["Type 2 twee onder een kap",4.1,7.5,3.3,7.3],
+  ["Type 2 rijtjeswoning",4.1,7.5,3.3,7.3],
+  ["Type 2 onbekend woningtype",4.1,7.5,3.3,7.3],
+  ["Type 3 appartement incl. publiek laden",3.5,0,2.8,0],
+  ["Type 4 appartement incl. publiek laden",6,0,5.5,0],
+  ["Type 6 3x35A t/m 3x40A",32,32,32,32],
+  ["Type 6 3x50A",44,44,44,44],
+  ["Type 6 3x63A t/m 3x80A",65,65,65,65],
+  ["Type 7 3x160A",138,138,138,138],
+  ["Type 7 3x250A",210,210,210,210],
+  ["Type 8 netbewust publiek laden 3x25A",4.6,0,3.8,0]
+ ],
+ "limitations":"Collectieve warmtepomp en type 5 toeslagen vereisen expliciete vermogens/gelijktijdigheid. Bij 4.1A is de woningcategorie niet uit het getal afleidbaar. Lege opwekkolom bij appartement/publiek laden betekent hier geen opgenomen opwek; andere ontbrekende waarden nooit stilzwijgend nul."
+}
