@@ -1,6 +1,6 @@
 # Universeel plan van aanpak — stationsgebieden
 
-Concept ter beoordeling door Luka · 2 oktober 2026
+Werkwijze bijgewerkt op basis van Luka's correcties en referentie 011.601 correct · 5 oktober 2026
 
 Dit plan geldt voor het ontwerpen van één of meerdere stationsgebieden vanuit een situatie zoals 011.601: stationslocaties en beschikbare uitrusting zijn aangegeven, bestaande kabels en aansluitkabels staan in een KLIC-referentie, de Enexis-WFS geeft aansluitpunten, kabelcodes en kabeldeelgeometrie, en rondjes geven de kabelontwerpstromen van aansluitingen aan. De nieuwe kabelrichtingen, hergebruikstukken, moffen, overzettingen en richtingoverzichten moeten nog worden uitgewerkt. Rode gebiedsgrenzen kunnen al aanwezig zijn.
 
@@ -132,6 +132,8 @@ Maak per richting een samenhangend ontwerp met:
 
 **Vrije moflocatie op een bestaande kabel (aanvulling Luka, 5 oktober 2026):** een nieuwe voeding mag op ieder geschikt punt van een bestaande kabel worden ingemofft, ook midden in een kabeldeel. De mof hoeft niet op het oorspronkelijke beginpunt, eindpunt of een WFS-objectgrens te liggen. Onderzoek deze mogelijkheid actief om kabelkruisingen te voorkomen en hergebruik mogelijk te maken. Leg de exacte moflocatie en de gekozen verbinding vast. Splits het bestaande kabeldeel op die locatie in de netstructuur en bereken vanaf de mof ieder gevoed vervolgpad afzonderlijk, met de nieuwe voedingskabel als gemeenschappelijk pad. Leg zo nodig scheidingen vast zodat er geen onbedoelde koppeling met een andere voeding ontstaat. Aansluitingen die op hun oorspronkelijke bestaande kabel blijven krijgen hierdoor geen overzetter. Controleer de plek ook op ruimte, kabeltype, stoep, bomen, grondpositie en gevolgen voor de afzonderlijke OV-uitwerking bij een combikabel.
 
+**Bestaande hoofdkabel verdelen over meerdere richtingen (aanvulling Luka, 5 oktober 2026):** hergebruik is niet beperkt tot één volledige kabelgroep per richting. Een bestaande hoofdkabel mag op geschikte punten worden gesplitst, zodat verschillende delen door onafhankelijke richtingen worden gevoed. Leg de daadwerkelijke elektrische scheidingen, nieuwe moffen, voeding en aansluitingen per behouden deel vast. Splits ook de modelgeometrie op die locaties. Een WFS-kabelcode kan daarna delen onder meerdere richtingen hebben; een kleurwijziging alleen is geen elektrische scheiding. Alle aansluitingen blijven precies eenmaal gevoed, zonder onbedoelde verbinding tussen richtingen of de oude voeding. Controleer achterblijvende kabeldelen, buren en eventuele OV-gevolgen. Onderzoek deze optie voordat je bestaande groepen volledig vervangt of extra afzonderlijke sleuven maakt.
+
 ### Tracé, kruisingen, bomen en grondpositie
 
 **Voorkeur voor de stoep blijft gelden bij rechte lijnen (correctie Luka, 5 oktober 2026):** trek een route langs een gebogen stoep niet rechtdoor door een boomstrook, bosplantsoen, heesters of andere beplante vakken. De toestemming voor gras, pleinen en verharding maakt een boom- of beplantingsstrook niet vrij voor een doorsteek. Controleer de volledige kabelbundel, inclusief de uitloop vanaf het station, na iedere vereenvoudiging en offset opnieuw tegen de projecttopografie én BGT-punten en -vlakken. Alleen afstand tot afzonderlijke boompunten is onvoldoende. Behoud de noodzakelijke bochten langs de stoep; de eis van een rechte wegoversteek wordt alleen op een echte oversteek toegepast en mag een lang tracé langs de weg niet tot een schadelijke doorsteek verkorten.
@@ -165,7 +167,7 @@ Vergelijk tracévarianten op kruisingvrij verloop, voorkeur voor de stoep, noodz
 
 Een gewijzigde stationsvoeding, gebiedsgrens of richtingkleur is op zichzelf geen overzetting. De vergelijking betreft de kabel waarop de aansluiting wordt aangesloten. Leg in het aansluitregister de beslissing en reden vast. Moffen tussen nieuwe en bestaande hoofdkabels worden apart bepaald; zo'n mof betekent niet dat alle aansluitingen op het behouden kabelstuk overzetters krijgen.
 
-Verdeel aansluitingen op basis van kabelstructuur, route, belasting, lengtegrens en uitvoering. Gelijke aantallen woningen per richting zijn geen zelfstandige ontwerpregel. Gebruik geverifieerde projectafspraken voor tijdelijke, reserve- of bijzondere richtingen; leid bijvoorbeeld een verplichte `80A Tamp`-bezetting niet alleen uit één voorbeeld af.
+**Keuzevolgorde na vergelijking met 011.601 correct:** bepaal eerst bruikbare bestaande stukken en mogelijke splitsingen, daarna samenhangende richtinggroepen en de gezamenlijke gleuf, vervolgens noodzakelijke nieuwe voedingen. Bereken alle materiële paden voordat moffen, labels en overzetters worden afgerond. Verdeel aansluitingen op basis van kabelstructuur, route, belasting, lengtegrens en uitvoering. Gelijke aantallen woningen per richting zijn geen zelfstandige ontwerpregel. Gebruik geverifieerde projectafspraken voor tijdelijke, reserve- of bijzondere richtingen; leid bijvoorbeeld een verplichte `80A Tamp`-bezetting niet alleen uit één voorbeeld af.
 
 **Huisaansluitkabels en moffen (aanvulling Luka, 5 oktober 2026):** huisaansluitkabels maken geen deel uit van het richtingdesign. Gebruik ze uitsluitend als bron om aansluitingen aan de juiste hoofdkabel te koppelen en de belasting toe te wijzen. Neem ze niet als LS-hoofdkabeltakken op in de tracégeometrie of de lengte-/afzekeringsberekening van de richting en plaats geen eindmof bij iedere huisaansluitkabel. Teken moffen alleen op het ontworpen hoofdkabelnet: daadwerkelijke verbindingen, hoofdkabelaftakken, scheidingen en kabeluiteinden. De rondjes en hun ontwerpstromen blijven wel meetellen voor richting en trafo; de eerdere overzetterregel blijft gelden.
 
@@ -175,7 +177,11 @@ Bereken per richting verbruik en opwek afzonderlijk met de **kabelwaarden** van 
 
 Meet ieder fysiek kabeldeel met de bevestigde tekeneenheid. Lees echte booglengtes mee. Gebruik bij grafisch verschoven of parallel weergegeven lijnen de vastgestelde fysieke rekenroute; tel de weergavelijnen niet als meerdere elektrische kabels op.
 
-Toets ieder volledig pad vanaf het station naar een hoofd- of aftakeinde. Per pad:
+**Rekeneinde: kabeluiteinde eerst, laatste aansluiting als terugval (aanvulling Luka, 5 oktober 2026).** Reken aanvankelijk tot het fysieke einde van ieder relevant hoofd- en aftakpad. Als die variant niet past bij de richtingbelasting of benodigde afzekering, toets het pad tot de laatste aansluiting op dat kabeldeel. Meet langs de hoofdkabel tot het punt waar de laatste aansluiting daarop aansluit; tel de huisaansluitkabel niet mee. Bewaar per pad beide lengtes en het gekozen rekeneinde. Houd in de verkorte variant dezelfde volledige aansluitingstoewijzing, verbruik en opwek; geen aansluitingen of beperkende aftakken laten vervallen.
+
+Een rekeneinde bij de laatste aansluiting **verplaatst geen eindmof en verwijdert geen fysieke kabelstaart**. De daadwerkelijke kabelroute, aftakmoffen, scheidingen en het achterblijvende deel blijven apart vastgelegd. Als ook deze variant niet voldoet, herverdeel of splits een bestaande kabel, gebruik een beschikbare extra richting of vervang het beperkende deel door 150Al. Een gebiedsgrens of WFS-objectgrens is geen automatische laatste aansluiting.
+
+Toets ieder volledig pad vanaf het station naar het gekozen, expliciet vastgelegde hoofd- of aftakrekeneinde. Per pad:
 
 `R = Σ(R per km × lengte in meter / 1000)`
 
@@ -183,9 +189,11 @@ Toets ieder volledig pad vanaf het station naar een hoofd- of aftakeinde. Per pa
 
 `Z = √(R² + X²)`
 
-Controleer impedantie, stroombelastbaarheid van iedere doorsnede, passende belastingverdeling en de fysieke kabelverjonging. Gebruik de bronwaarden van het gekozen kader. Bij twijfel over de belastingverdeling worden de ondersteunde profielen doorgerekend en wordt de ongunstigste uitkomst aangehouden totdat een andere keuze onderbouwd is.
+Controleer impedantie, stroombelastbaarheid van iedere doorsnede, passende belastingverdeling en de fysieke kabelverjonging. Gebruik de bronwaarden van het gekozen kader. Een expliciet ingevuld en onderbouwd profiel uit de goedgekeurde werkmap wordt behouden; de referentie 011.601 gebruikt evenredig voor R2/R3/R11 en laatste helft voor R4/R5/R9/R10. Dit zijn geen universele richtingnummers. Bij twijfel over de belastingverdeling worden de ondersteunde profielen doorgerekend en wordt de ongunstigste uitkomst aangehouden totdat een andere keuze onderbouwd is.
 
 **Vaste aftakregel:** het gemeenschappelijke kabelstuk tot de aftakmof wordt in ieder afzonderlijk volledig pad eenmaal opgenomen. De hoofdkabel na de mof en de zijtakken worden als afzonderlijke vervolgpaden getoetst. Hun lengtes worden niet als één lange seriekabel achter elkaar opgeteld. Bij meerdere aftakmoffen worden alle complete eindpaden beoordeeld.
+
+Beoordeel alle materiaalpaden; selecteer niet alleen het langste pad. Een korter pad met dunnere bestaande kabel kan de laagste afzekering opleveren, zoals R5 in de gecorrigeerde referentie.
 
 De **laagste maximaal toegestane afzekering van alle paden geldt voor de hele richting**. De totale richtingbelasting, inclusief aftakken, moet onder de bijbehorende maximale ontwerpstroom blijven. Er worden geen aparte aftakzekeringen verondersteld om een beperkende zijtak buiten de beoordeling te laten.
 
@@ -237,6 +245,8 @@ Voor de huidige Laarbeek-referentie geldt:
 | Kabelteksten | Gewone nieuwe LS-kabel: `150Al / ????-00`. Noodzakelijke nieuwe combi-verbinding met een bestaande combikabel: `150Al+ / ????-00`. Behoud de bestaande kabelnotatie voor hergebruik; onbekende nummers zichtbaar als onbekend. |
 | Resultaten | Decimale komma, `Amp.` en `Met.` volgens de referentie. |
 
+De actuele goedgekeurde stijlen ontwerpkeuzereferentie is **011.601 correct**, naast geschikte voorbeelden zoals 011.602. [Vergelijking en rekenuitkomsten](referentie-011601-correct.md). In deze referentie hebben nieuwe hoofdpolylines breedte 0 en BYLAYER-eigenschappen; stroom en lengte staan op afzonderlijke regels. Behoud de expliciete 0,20 m offset tussen richtingen. Een logische polyline is een kabelroute; decoratieve lijnopbouw niet als extra elektrische lengte tellen.
+
 Gebruik dezelfde parallelle lijnopbouw, afstanden, blokoriëntaties en tekstplaatsing als de goedgekeurde referentie. Leg de weergegeven lengte bij een vertakte richting eenduidig vast en laat deze overeenkomen met het aangegeven rekenpad. Een blok wordt beoordeeld op zijn zichtbare geometrie en attribuutlocaties, niet uitsluitend op het invoegpunt.
 
 Houd alle kabelweergavelijnen naast elkaar zonder kruisingen. Controleer de ligging ten opzichte van stoep, bomen en perceelgrenzen op planschaal én bij detailaanzicht. Een grafische verschuiving mag geen onuitvoerbare fysieke route maskeren.
@@ -249,7 +259,7 @@ Een stationsgebied is gereed wanneer:
 
 1. alle aansluitingen binnen de afgesproken scope precies eenmaal zijn toegewezen, of expliciet als onopgelost zijn gemeld;
 2. huidige en ontworpen voedingen, aftakken en scheidingen traceerbaar zijn; de WFS-kabelfunctie via `omschrijving` is gecontroleerd, LS en LS/OV zijn meegenomen en uitsluitend OV is uitgesloten van de LS-uitwerking;
-3. alle volledige kabelpaden voldoen en de laagste toelaatbare afzekering correct op de hele richting is toegepast;
+3. alle volledige kabelpaden tot hun expliciete rekeneinde voldoen, de laagste toelaatbare afzekering op de hele richting is toegepast en een laatste-aansluitingvariant dezelfde belasting en volledige aansluitdekking behoudt; fysieke kabelstaarten en eindmoffen zijn afzonderlijk vastgelegd;
 4. de volledige richtingbelasting past onder de bijbehorende ontwerpstroomgrens;
 5. de categorievertaling voor de trafo compleet is en de maatgevende stroom maximaal `trafocapaciteit in kVA ÷ 0,23 ÷ 3` bedraagt, getoetst met ongeronde waarden;
 6. de beschikbare richtingen en bijzondere functies zijn gerespecteerd;
@@ -291,3 +301,10 @@ De toekomstige vaardigheid toetst kabelroutes en lijnweergave op kruisingen, par
 - [2024-bronwerkmap Eea-0205.K 1.0](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/blob/4009601e15fa4b1b6926380395132b0c1630ce21/src/Enexis.KabelChecker.AutoCAD/Resources/Eea-0205.K%201.0%20-%20Copy.xlsx).
 - [Kabelrekenregels en kabelcatalogus](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/blob/4009601e15fa4b1b6926380395132b0c1630ce21/docs/excel-model.md).
 - [Gescheiden kabel- en trafowaarden per kader](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/blob/4009601e15fa4b1b6926380395132b0c1630ce21/docs/ontwerpstroom-per-kader.md).
+
+
+## 12. Kalibratie en herbruikbare skill
+
+De referentie **011.601 correct** bevat zeven normale richtingen, behouden 95Al-stukken en 78 overzetterblokken. De ingevulde categorieën geven 886,8 A trafoverbruik en 909,6 A opwek; de 630 kVA-grens is ongerond 913,043478… A. De oude 916,9 A hoorde bij de oorspronkelijke 8,4 A-aansluiting. In het gecorrigeerde voorbeeld is die aansluiting verplaatst en vervangen door 4,6 A publiek laden (3,8 A trafoverbruik, geen opwek in deze categorie). Gebruik geen verouderde aansluitcategorieën naast de gecorrigeerde geometrie.
+
+[De skill](../SKILL.md) legt deze keuzevolgorde vast. Het [rekenhulpmiddel](../scripts/reken_richtingen.py) en [referentie-invoer](../references/011601-correct.json) reproduceren alle zeven gekozen kaderberekeningen. Het hulpmiddel leest expliciete paden; het is geen automatische CAD-router of bewijs van volledige topologie, eigendom of uitvoerbaarheid. Aantallen en RT-bezetting blijven projectgebonden. Zie [referentieanalyse](referentie-011601-correct.md) voor de materiaalpaden, profiles en grenzen van de controle.
