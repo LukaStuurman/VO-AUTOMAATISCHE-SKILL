@@ -1,0 +1,4 @@
+interface:
+  display_name: "Enexis VO stationsgebieden"
+  short_description: "Ontwerp LS-stationsgebieden volgens jouw CAD-referentie"
+  default_prompt: "Gebruik $enexis-vo-stationsgebieden om een stationsgebied te ontwerpen met hergebruik, gebundelde trac�s en de juiste kaderberekening."
