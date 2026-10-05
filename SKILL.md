@@ -33,3 +33,11 @@ Zeven richtingen, 78 overzetters en RT1/RT12 met 80A Tamp zijn kenmerken van 011
 Gebruik `last_connection_paths` alleen met volledige, ongewijzigde aansluitingstoewijzing: `connection_ids` en `last_connection_coverage`. Bewaar fysieke uiteinden en moffen apart. Rapporteer een tekort als onvoldoende.
 
 De oude lokale `.analysis/finalize_station.py` maakt de achterhaalde acht-richtingenvariant met vrijwel alles nieuw. Alleen gebruiken voor expliciete historische reproductie; niet voor nieuwe ontwerpen.
+
+## Concrete oplevering
+
+Bij een verzoek om een LS-VO te maken of opnieuw uit te werken, lever daadwerkelijk een nieuwe DXF/DWG, een overzicht en stationsdetail op, met aansluitingstoewijzing en richting-/trafocontrole. Een plan, skilltekst of herberekening alleen is geen tekenresultaat. Controleer het opgeslagen bestand en bekijk de previews vóór oplevering. Geef het concrete bestand en zijn locatie aan; markeer oude eigen varianten als historisch.
+
+Voor een herbouw van dezelfde projectsituatie kan `scripts/maak_vo_tekening.py` een expliciet projectplan verwerken. Vereisten: ezdxf en shapely. Het gebruikt de oorspronkelijke DXF plus een goedgekeurde referentie **van hetzelfde project en dezelfde stationlocatie met gemeenschappelijke modelhandle-historie** voor de annotatieverschillen. Nieuwe kabelroutes en resultaten worden uit het plan getekend/berekend. Dit is een referentiegestuurde assembler, geen universele router: gebruik geen geometrie of aansluitingen van 011.601 op een ander station. Voor een nieuwe locatie maak je eerst eigen routes, aansluitingen, scheidingen en annotaties uit de bronnen volgens de werkvolgorde.
+
+Leg eerlijk vast welke keuzes uit een goedgekeurd voorbeeld komen en welke onafhankelijk zijn bepaald. Vergelijk fysieke kabeluiteinden en laatste-aansluitingpaden daadwerkelijk; een overgenomen kaderpad alleen bewijst die endpoint-keuze niet. In de nieuwe 011.601-uitwerking is R5 tot zijn fysieke 95Al-eindmof onvoldoende en tot de laatste aansluiting passend, met dezelfde 17 aansluitingen en behouden kabelstaart. R11 wordt op hoofd- én aftakpad getoetst.
