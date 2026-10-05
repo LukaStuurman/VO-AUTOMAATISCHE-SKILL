@@ -134,6 +134,11 @@ Maak per richting een samenhangend ontwerp met:
 
 **Bestaande hoofdkabel verdelen over meerdere richtingen (aanvulling Luka, 5 oktober 2026):** hergebruik is niet beperkt tot één volledige kabelgroep per richting. Een bestaande hoofdkabel mag op geschikte punten worden gesplitst, zodat verschillende delen door onafhankelijke richtingen worden gevoed. Leg de daadwerkelijke elektrische scheidingen, nieuwe moffen, voeding en aansluitingen per behouden deel vast. Splits ook de modelgeometrie op die locaties. Een WFS-kabelcode kan daarna delen onder meerdere richtingen hebben; een kleurwijziging alleen is geen elektrische scheiding. Alle aansluitingen blijven precies eenmaal gevoed, zonder onbedoelde verbinding tussen richtingen of de oude voeding. Controleer achterblijvende kabeldelen, buren en eventuele OV-gevolgen. Onderzoek deze optie voordat je bestaande groepen volledig vervangt of extra afzonderlijke sleuven maakt.
 
+
+**BGT hoofd- en plustype:** lees `fysiek_voorkomen` én `plus_fysiek_voorkomen`. Groenvoorziening met bomen, bosplantsoen, heesters of struiken wordt vermeden. Een leeg/onbekend plustype bewijst geen gras of boomvrije ruimte. Controleer ook vegetatieobjecten en eigen topografie. Bodembedekkers worden afzonderlijk als lage beplanting beoordeeld; dit is geen bewijs dat wortelzones ontbreken.
+
+**Knippen en verwijderen van ongebruikte bestaande delen:** bepaal eerst de unie van alle behouden delen per fysieke kabel/code over ALLE richtingen. Bescherm andere richtingen, externe voedingen en onzeker gebruik. Alleen het restant dat nergens gebruikt wordt mag bij een mof worden geknipt en verwijderd; niet automatisch de rest van een kabelcode verwijderen. Houd snijlocaties, oorspronkelijke voeding en echte elektrische scheidingen bij. Bij combi blijft fysieke verwijdering geblokkeerd zolang het afzonderlijke OV-gebruik niet is vastgesteld. De KLIC/WFS-bron blijft intact; leg verwijdering als ontwerpbesluit vast. Een rekenkundig korter pad alleen verwijdert niets.
+
 ### Tracé, kruisingen, bomen en grondpositie
 
 **Voorkeur voor de stoep blijft gelden bij rechte lijnen (correctie Luka, 5 oktober 2026):** trek een route langs een gebogen stoep niet rechtdoor door een boomstrook, bosplantsoen, heesters of andere beplante vakken. De toestemming voor gras, pleinen en verharding maakt een boom- of beplantingsstrook niet vrij voor een doorsteek. Controleer de volledige kabelbundel, inclusief de uitloop vanaf het station, na iedere vereenvoudiging en offset opnieuw tegen de projecttopografie én BGT-punten en -vlakken. Alleen afstand tot afzonderlijke boompunten is onvoldoende. Behoud de noodzakelijke bochten langs de stoep; de eis van een rechte wegoversteek wordt alleen op een echte oversteek toegepast en mag een lang tracé langs de weg niet tot een schadelijke doorsteek verkorten.
@@ -189,11 +194,11 @@ Toets ieder volledig pad vanaf het station naar het gekozen, expliciet vastgeleg
 
 `Z = √(R² + X²)`
 
-Controleer impedantie, stroombelastbaarheid van iedere doorsnede, passende belastingverdeling en de fysieke kabelverjonging. Gebruik de bronwaarden van het gekozen kader. Een expliciet ingevuld en onderbouwd profiel uit de goedgekeurde werkmap wordt behouden; de referentie 011.601 gebruikt evenredig voor R2/R3/R11 en laatste helft voor R4/R5/R9/R10. Dit zijn geen universele richtingnummers. Bij twijfel over de belastingverdeling worden de ondersteunde profielen doorgerekend en wordt de ongunstigste uitkomst aangehouden totdat een andere keuze onderbouwd is.
+Controleer impedantie, stroombelastbaarheid van iedere doorsnede, passende belastingverdeling en de fysieke kabelverjonging. Gebruik de bronwaarden van het gekozen kader. Een expliciet voorgeschreven en onderbouwd profiel uit de projectinvoer wordt behouden. Bij een bronontwerp bepaal je het profiel uit de aansluitverdeling; neem geen profiel uit de ingevulde oplossing van het doelstation. Bij twijfel over de belastingverdeling worden de ondersteunde profielen doorgerekend en wordt de ongunstigste uitkomst aangehouden totdat een andere keuze onderbouwd is.
 
 **Vaste aftakregel:** het gemeenschappelijke kabelstuk tot de aftakmof wordt in ieder afzonderlijk volledig pad eenmaal opgenomen. De hoofdkabel na de mof en de zijtakken worden als afzonderlijke vervolgpaden getoetst. Hun lengtes worden niet als één lange seriekabel achter elkaar opgeteld. Bij meerdere aftakmoffen worden alle complete eindpaden beoordeeld.
 
-Beoordeel alle materiaalpaden; selecteer niet alleen het langste pad. Een korter pad met dunnere bestaande kabel kan de laagste afzekering opleveren, zoals R5 in de gecorrigeerde referentie.
+Beoordeel alle materiaalpaden; selecteer niet alleen het langste pad. Een korter pad met dunnere bestaande kabel kan de laagste afzekering opleveren, bij een richting met kabelverjonging.
 
 De **laagste maximaal toegestane afzekering van alle paden geldt voor de hele richting**. De totale richtingbelasting, inclusief aftakken, moet onder de bijbehorende maximale ontwerpstroom blijven. Er worden geen aparte aftakzekeringen verondersteld om een beperkende zijtak buiten de beoordeling te laten.
 
@@ -229,7 +234,7 @@ Rond een station niet af als daarmee noodzakelijke aansluitingen zonder haalbare
 
 ## 8. Dezelfde vormgeving gebruiken, ook zonder uitgewerkte buren
 
-Leg de goedgekeurde vormgeving als zelfstandige stijlreferentie vast. Die bevat de laageigenschappen, benodigde blokdefinities, tekststijlen, lijnopbouw, voorbeeldlabels en een volledig uitgewerkt stationsvoorbeeld. Daardoor hoeft een nieuwe tekening geen al ingevuld station te bevatten om dezelfde vormgeving te kunnen gebruiken.
+Leg de goedgekeurde vormgeving als zelfstandige stijlreferentie vast. Die bevat de laageigenschappen, benodigde blokdefinities, tekststijlen, lijnopbouw, voorbeeldlabels en lokale stijlvoorbeelden zonder locatiegebonden ontwerpkeuzes. Daardoor hoeft een nieuwe tekening geen al ingevuld station te bevatten om dezelfde vormgeving te kunnen gebruiken.
 
 Voor de huidige Laarbeek-referentie geldt:
 
@@ -245,7 +250,7 @@ Voor de huidige Laarbeek-referentie geldt:
 | Kabelteksten | Gewone nieuwe LS-kabel: `150Al / ????-00`. Noodzakelijke nieuwe combi-verbinding met een bestaande combikabel: `150Al+ / ????-00`. Behoud de bestaande kabelnotatie voor hergebruik; onbekende nummers zichtbaar als onbekend. |
 | Resultaten | Decimale komma, `Amp.` en `Met.` volgens de referentie. |
 
-De actuele goedgekeurde referentie voor vormgeving en ontwerpkeuzes is **011.601 correct**, naast geschikte voorbeelden zoals 011.602. [Vergelijking en rekenuitkomsten](referentie-011601-correct.md). In deze referentie hebben nieuwe hoofdpolylines breedte 0 en BYLAYER-eigenschappen; stroom en lengte staan op afzonderlijke regels. Behoud de expliciete 0,20 m offset tussen richtingen. Een logische polyline is een kabelroute; decoratieve lijnopbouw niet als extra elektrische lengte tellen.
+De goedgekeurde lokale stijlset bewaart vormgeving zonder routes of keuzes voor het doelstation. Voorbeelden zoals 011.602 ondersteunen de gezamenlijke gleuf; de oplossing van het doelstation wordt uitsluitend achteraf vergeleken. In deze referentie hebben nieuwe hoofdpolylines breedte 0 en BYLAYER-eigenschappen; stroom en lengte staan op afzonderlijke regels. Behoud de expliciete 0,20 m offset tussen richtingen. Een logische polyline is een kabelroute; decoratieve lijnopbouw niet als extra elektrische lengte tellen.
 
 Gebruik dezelfde parallelle lijnopbouw, afstanden, blokoriëntaties en tekstplaatsing als de goedgekeurde referentie. Leg de weergegeven lengte bij een vertakte richting eenduidig vast en laat deze overeenkomen met het aangegeven rekenpad. Een blok wordt beoordeeld op zijn zichtbare geometrie en attribuutlocaties, niet uitsluitend op het invoegpunt.
 
@@ -278,7 +283,7 @@ Voor meerdere stations hoort ook een projectoverzicht bij de controle: unieke aa
 
 ## 10. Uitvoering met de herbruikbare skill
 
-Deze werkwijze staat in de herbruikbare skill met de referentie 011.601 correct. Per uitvoering zijn kader, stations, uitrusting, ontwerpstatus en actuele bronnen nodig. De skill schrijft de onderstaande controles voor; het meegeleverde rekenhulpmiddel voert uitsluitend de expliciet ingevoerde pad- en trafoberekeningen uit. Kabelkoppelingen en CAD-tracés worden daarnaast op de bronnen en tekening gecontroleerd. Beide beginsituaties worden ondersteund. Stationnummer, 125 aansluitingen, kabelcodes en RT-bezetting uit 011.601 zijn geen algemene voorschriften.
+Deze werkwijze staat in de herbruikbare skill met de referentie 011.601 correct. Per uitvoering zijn kader, stations, uitrusting, ontwerpstatus en actuele bronnen nodig. De skill schrijft de onderstaande controles voor; de bronpipeline genereert kandidaten uit CAD/GIS en toetst de opgeslagen tekening; het losse rekenhulpmiddel toetst expliciete paden. Kabelkoppelingen en CAD-tracés worden daarnaast op de bronnen en tekening gecontroleerd. Beide beginsituaties worden ondersteund. Stationnummer, 125 aansluitingen, kabelcodes en RT-bezetting uit 011.601 zijn geen algemene voorschriften.
 
 De vaardigheid bewaart de categorieën en bronversie en bevat controles voor aftakken, scheidingen, richtingcapaciteit, trafocapaciteit en samenhang tussen stations. Zij koppelt aansluitpunt, aansluitkabel en hoofdkabel via WFS-code én geometrie en koppelt het kabeltype via de KLIC-geulentekst. Zij bevat expliciet de `-01`-uitzondering voor een eigen richting met één aansluiting en de materiaalregel zonder `Al` = Cu. Zij bewaart per aansluiting de oorspronkelijke en ontworpen kabel en leidt daaruit de overzetters af. Zij hanteert 150Al als standaard voor nieuwe kabels en maakt 150Al+ alleen voor de vastgelegde noodzakelijke combi-verbinding. De trafo-stroomgrens wordt berekend uit de kVA-invoer met `kVA ÷ 0,23 ÷ 3`; 913 A wordt niet als vaste limiet voor alle stations opgeslagen. Een kabelchecker die alleen geselecteerde serielengtes berekent, wordt aangevuld met deze netstructuur- en toewijzingscontrole.
 
@@ -295,7 +300,7 @@ De werkwijze toetst kabelroutes en lijnweergave op kruisingen, parallelle liggin
 - Aanvullende WFS-selectieregel van Luka: controleer `omschrijving`; LS en LS/OV horen bij deze LS-tekening, uitsluitend OV niet. Deze regel is ook gecontroleerd tegen de omschrijvingen in de begrensde WFS-selectie.
 
 - Luka's instructies: aftakken afzonderlijk toetsen met hun gemeenschappelijke voedingsstuk; laagste toelaatbare afzekering voor de hele richting; aansluitcategorieën vertalen naar trafowaarden; **maximale trafo-ontwerpstroom = kVA ÷ 0,23 ÷ 3** (630 kVA is circa 913 A); beide beginsituaties ondersteunen; overzetters uitsluitend bij aansluitingen die naar een nieuwe kabel gaan; nieuwe kabels standaard altijd **150Al**; combi alleen bij noodzakelijke aansluiting op een bestaande combikabel, met kabeltekst **150Al+**; standaard aparte LS- en OV-kabels, met OV in een afzonderlijke tekening; WFS voor aansluitkoppelingen en kabelcodes, KLIC voor kabeltypes; de `-01`-uitzondering voor eigen richtingen met één aansluiting; zonder `Al` bij de doorsnedecijfers is het materiaal Cu.
-- [Enexis-WFS: mogelijkheden en beschikbare lagen](https://opendata.enexis.nl/geoserver/wfs?service=WFS&request=GetCapabilities&version=2.0.0). De drie genoemde laagschema's en een begrensde Laarbeek-selectie zijn gecontroleerd op 2 oktober 2026; de bekeken objecten hadden peildatum 26 september 2026. Er is nog geen definitieve koppeling van alle 125 ontwerpstroomrondjes uitgevoerd.
+- [Enexis-WFS: mogelijkheden en beschikbare lagen](https://opendata.enexis.nl/geoserver/wfs?service=WFS&request=GetCapabilities&version=2.0.0). De drie genoemde laagschema's en een begrensde Laarbeek-selectie zijn gecontroleerd op 2 oktober 2026; de bekeken objecten hadden peildatum 26 september 2026. De bronpipeline reconstrueert de koppeling en houdt onzekere WFS-labels zichtbaar; de vergelijking staat in het afzonderlijke kalibratieverslag.
 - Laarbeek-projecttekening en beschikbare KLIC- en toporeferenties, onderzocht op 2 oktober 2026, voor de stijlreferentie en het praktijkvoorbeeld.
 - [Kabelchecker: gecontroleerde bronversie](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/tree/4009601e15fa4b1b6926380395132b0c1630ce21).
 - [2024-bronwerkmap Eea-0205.K 1.0](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/blob/4009601e15fa4b1b6926380395132b0c1630ce21/src/Enexis.KabelChecker.AutoCAD/Resources/Eea-0205.K%201.0%20-%20Copy.xlsx).
@@ -303,17 +308,12 @@ De werkwijze toetst kabelroutes en lijnweergave op kruisingen, parallelle liggin
 - [Gescheiden kabel- en trafowaarden per kader](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker/blob/4009601e15fa4b1b6926380395132b0c1630ce21/docs/ontwerpstroom-per-kader.md).
 
 
-## 11. Kalibratie en herbruikbare skill
+## 11. Bronontwerp en vergelijking
 
-De referentie **011.601 correct** bevat zeven normale richtingen, behouden 95Al-stukken en 78 overzetterblokken. De ingevulde categorieën geven 886,8 A trafoverbruik en 909,6 A opwek; de 630 kVA-grens is ongerond 913,043478… A. De oude 916,9 A hoorde bij de oorspronkelijke 8,4 A-aansluiting. In het gecorrigeerde voorbeeld is die aansluiting verplaatst en vervangen door 4,6 A publiek laden (3,8 A trafoverbruik, geen opwek in deze categorie). Gebruik geen verouderde aansluitcategorieën naast de gecorrigeerde geometrie.
+De standaard is genereren uit oorspronkelijke bronnen volgens [bronworkflow](bronworkflow.md), niet het kopiëren van een uitgewerkt doelstation. Expliciete broncorrecties staan los van route-/richtingskeuzes. Bewaar input-/scriptversies en gelezen bestanden. Lees een oplossing uitsluitend in een afzonderlijke vergelijking na het opslaan van de kandidaat. Verbeter vervolgens algemene regels en voer de bronrun opnieuw uit.
 
-[De skill](../SKILL.md) legt deze keuzevolgorde vast. Het [rekenhulpmiddel](../scripts/reken_richtingen.py) en [referentie-invoer](../references/011601-correct.json) reproduceren alle zeven gekozen kaderberekeningen. Het hulpmiddel leest expliciete paden; het is geen automatische CAD-router of bewijs van volledige topologie, eigendom of uitvoerbaarheid. Aantallen en RT-bezetting blijven projectgebonden. Zie [referentieanalyse](referentie-011601-correct.md) voor de materiaalpaden, profielen en grenzen van de controle.
+## 12. Concrete oplevering en grenzen
 
+Lever DXF/DWG, bekeken overzicht/detail, aansluitregister, fysieke/laatste-aansluitingpaden, trafoberekening en een per-deelverwijderregister. Controleer opgeslagen geometrie op nieuwe en behouden kabels, vegetatie en rechte gedeelde wegkruisingen. De stijlset werkt zonder ingevulde buurgebieden. Catalogus/automatische topologiebeperkingen staan in de skill; ontbrekende grondpositie, wortelzones en externe voedingen blijven open punten.
 
-## 12. Van werkafspraken naar een echte tekening
-
-Een opdracht om een LS-VO te maken levert een nieuwe DXF/DWG plus overzicht en stationsdetail op, met aansluitregister en berekeningen. Een aangepast plan of rekenblad alleen voldoet niet aan een tekenopdracht. Lees het opgeslagen bestand terug en vergelijk de daadwerkelijk getekende routes, symbolen, labels en resultaten met de invoer en referentie.
-
-De nieuwe uitwerking van 011.601 is gemaakt op de oorspronkelijke DXF met de gecorrigeerde versie als corridor-, scheidings- en stijlleidraad. Zeven hoofdpolylines en een gezamenlijke stationsuitloop zijn opnieuw gegenereerd, met 0,20 m offset. De 125 aansluitingen zijn verdeeld over dezelfde zeven richtingen; 78 komen op nieuwe kabels en 47 blijven behouden. R5 gebruikt de laatste-aansluitingvariant op 95Al nadat de fysieke-eindmofvariant niet past. De circa 22,46 m kabelstaart en fysieke eindmof blijven staan. R11 is op zijn fysieke hoofd- en aftakpad getoetst, waardoor de getoonde maatgevende lengte iets afwijkt van het gekozen kaderpad zonder verandering van de 200A-afzekering.
-
-Het [tekenhulpmiddel](../scripts/maak_vo_tekening.py) verwerkt het expliciete projectplan en de annotatieverschillen van een referentie met dezelfde project-/modelhistorie. Dit bewijst een gecontroleerde referentiegestuurde herbouw, geen onafhankelijk automatisch ontwerp op een onbekende locatie. Bron-CAD blijft lokaal; eigendom, wortelzones en gevolgen voor achterblijvende voedingen vragen nog eigen broncontrole.
+Zie het [kalibratieverslag](kalibratie-bronontwerp.md) voor het geteste bereik. De oudere [referentiegestuurde assembler](../scripts/maak_vo_tekening.py) blijft beschikbaar voor expliciete historische reconstructies en geldt niet als bronontwerp.
