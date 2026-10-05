@@ -7,7 +7,7 @@ def style_templates(doc):
  assets=json.loads((Path(__file__).parent.parent/'assets/cad-stijl.json').read_text(encoding='utf8'))['symbols'];templates={}
  for name,asset in assets.items():
   existing=next((e for e in doc.modelspace().query('INSERT') if e.dxf.name==name),None)
-  if existing is not None:templates[name]=existing;continue
+  if existing is not None and name!='RT 1-12':templates[name]=existing;continue
   blockname='VO_STYLE_'+name.replace(' ','_');block=doc.blocks.get(blockname) if blockname in doc.blocks else doc.blocks.new(blockname)
   if not len(block):
    for p in asset['primitives']:
@@ -20,7 +20,12 @@ def style_templates(doc):
   e=Insert.new(dxfattribs={'name':blockname,'insert':(0,0,0)},doc=doc)
   for a in asset['attributes']:
    attrs={k:v for k,v in a.items() if k not in ['tag','insert']}
+   position=a['insert']
+   if name=='RT 1-12':
+    circles=[p for p in asset['primitives'] if p['type']=='CIRCLE' and p['layer']==a['layer']]
+    if len(circles)!=1:raise ValueError('RT-rij mist eenduidig stijlrondje: '+a['tag'])
+    p=circles[0]['center'];position=[p[0]+.85,p[1]-.35,0];attrs.update(halign=0,valign=0,rotation=0,align_point=position)
    if a['layer'] not in doc.layers:doc.layers.new(a['layer'])
-   e.add_attrib(a['tag'],'',a['insert'],dxfattribs=attrs)
+   e.add_attrib(a['tag'],'',position,dxfattribs=attrs)
   templates[name]=e
  return templates
