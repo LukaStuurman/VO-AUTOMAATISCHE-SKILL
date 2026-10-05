@@ -160,6 +160,8 @@ Een gewijzigde stationsvoeding, gebiedsgrens of richtingkleur is op zichzelf gee
 
 Verdeel aansluitingen op basis van kabelstructuur, route, belasting, lengtegrens en uitvoering. Gelijke aantallen woningen per richting zijn geen zelfstandige ontwerpregel. Gebruik geverifieerde projectafspraken voor tijdelijke, reserve- of bijzondere richtingen; leid bijvoorbeeld een verplichte `80A Tamp`-bezetting niet alleen uit één voorbeeld af.
 
+**Huisaansluitkabels en moffen (aanvulling Luka, 5 oktober 2026):** huisaansluitkabels maken geen deel uit van het richtingdesign. Gebruik ze uitsluitend als bron om aansluitingen aan de juiste hoofdkabel te koppelen en de belasting toe te wijzen. Neem ze niet als LS-hoofdkabeltakken op in de tracégeometrie of de lengte-/afzekeringsberekening van de richting en plaats geen eindmof bij iedere huisaansluitkabel. Teken moffen alleen op het ontworpen hoofdkabelnet: daadwerkelijke verbindingen, hoofdkabelaftakken, scheidingen en kabeluiteinden. De rondjes en hun ontwerpstromen blijven wel meetellen voor richting en trafo; de eerdere overzetterregel blijft gelden.
+
 ## 6. Richtingen berekenen, inclusief aftakkingen
 
 Bereken per richting verbruik en opwek afzonderlijk met de **kabelwaarden** van de categorieën. Alle aansluitingen op de hoofdstreng en aftakken tellen eenmaal mee. Bij een automatische beoordeling is het hoogste totaal maatgevend; een andere expliciet gekozen stroombasis wordt vastgelegd.
