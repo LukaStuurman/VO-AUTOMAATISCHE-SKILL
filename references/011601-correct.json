@@ -1,0 +1,280 @@
+{
+  "provenance": {
+    "drawing": "011.601 correct/VO-LS PILS Laarbeek Beek D.26936 - Fase 7.dxf",
+    "workbook": "011.601 correct/011.601 kader ingevuld.xlsx",
+    "drawing_sha256": "fc1725ed6a0f0f08006fe0b0dbf162db0b94fff220bd0509d86eb0d6144a99d9",
+    "workbook_sha256": "114de87ec09dafda8b47e9adecdd6461c3bb85cabd1f4c035573fc082cefdf30",
+    "purpose": "Reproduce user-supplied selected path calculations, not independently prove every DXF connection or site ownership",
+    "cached_formula_values": "not present; calculations independently reconstructed from explicit source inputs"
+  },
+  "station": {
+    "id": "011.601",
+    "kader": 2024,
+    "kva": 630,
+    "categories": [
+      {
+        "id": "row5",
+        "count": 2,
+        "label": "  Vrijstaand",
+        "trafo_verbruik_A": 9.5,
+        "trafo_opwek_A": 9.5
+      },
+      {
+        "id": "row6",
+        "count": 10,
+        "label": "  Twee onder een kap",
+        "trafo_verbruik_A": 8.0,
+        "trafo_opwek_A": 7.3
+      },
+      {
+        "id": "row7",
+        "count": 112,
+        "label": "  Rijtjeswoning",
+        "trafo_verbruik_A": 7.0,
+        "trafo_opwek_A": 7.3
+      },
+      {
+        "id": "row36",
+        "count": 1,
+        "label": "  Aansluiting 3x25A",
+        "trafo_verbruik_A": 3.8,
+        "trafo_opwek_A": 0
+      }
+    ],
+    "directions": [
+      {
+        "id": "R2",
+        "profile": "evenredig",
+        "connection_count": 23,
+        "verbruik_A": 179.4,
+        "opwek_A": 172.5,
+        "desired_fuse_A": 250,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R2-frame-18",
+                "type": "150Al",
+                "length_m": 257.49
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_evenredig R2",
+        "source_length_cells": [
+          "Q18"
+        ],
+        "source_new_polyline_handle": "112D2D",
+        "new_main_geometry_length_m": 257.48850287284745
+      },
+      {
+        "id": "R3",
+        "profile": "evenredig",
+        "connection_count": 21,
+        "verbruik_A": 163.79999999999998,
+        "opwek_A": 157.5,
+        "desired_fuse_A": 250,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R3-frame-18",
+                "type": "150Al",
+                "length_m": 223.82
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_evenredig R3",
+        "source_length_cells": [
+          "Q18"
+        ],
+        "source_new_polyline_handle": "112D2E",
+        "new_main_geometry_length_m": 223.81740917520102
+      },
+      {
+        "id": "R4",
+        "profile": "laatste_helft",
+        "connection_count": 18,
+        "verbruik_A": 140.4,
+        "opwek_A": 135.0,
+        "desired_fuse_A": 160,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R4-frame-18",
+                "type": "150Al",
+                "length_m": 373.05
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_laatste_helft R4",
+        "source_length_cells": [
+          "Q18"
+        ],
+        "source_new_polyline_handle": "112D2F",
+        "new_main_geometry_length_m": 373.05246247183425
+      },
+      {
+        "id": "R5",
+        "profile": "laatste_helft",
+        "connection_count": 17,
+        "verbruik_A": 129.4,
+        "opwek_A": 120.0,
+        "desired_fuse_A": 160,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R5-frame-18",
+                "type": "150Al",
+                "length_m": 298.86
+              },
+              {
+                "id": "R5-frame-20",
+                "type": "95Al",
+                "length_m": 53.05
+              }
+            ]
+          },
+          {
+            "id": "nieuwe-hoofdtak",
+            "segments": [
+              {
+                "id": "R5-new-main",
+                "type": "150Al",
+                "length_m": 367.6217008790078
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_laatste_helft R5",
+        "source_length_cells": [
+          "Q18",
+          "Q20"
+        ],
+        "source_new_polyline_handle": "112D30",
+        "new_main_geometry_length_m": 367.6217008790078
+      },
+      {
+        "id": "R9",
+        "profile": "laatste_helft",
+        "connection_count": 17,
+        "verbruik_A": 132.6,
+        "opwek_A": 127.5,
+        "desired_fuse_A": 200,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R9-frame-18",
+                "type": "150Al",
+                "length_m": 141.95
+              },
+              {
+                "id": "R9-frame-20",
+                "type": "95Al",
+                "length_m": 108.81
+              }
+            ]
+          },
+          {
+            "id": "nieuwe-hoofdtak",
+            "segments": [
+              {
+                "id": "R9-new-main",
+                "type": "150Al",
+                "length_m": 200.32033369943738
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_laatste_helft R9",
+        "source_length_cells": [
+          "Q18",
+          "Q20"
+        ],
+        "source_new_polyline_handle": "112D34",
+        "new_main_geometry_length_m": 200.32033369943738
+      },
+      {
+        "id": "R10",
+        "profile": "laatste_helft",
+        "connection_count": 13,
+        "verbruik_A": 109.9,
+        "opwek_A": 99.8,
+        "desired_fuse_A": 125,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R10-frame-18",
+                "type": "150Al",
+                "length_m": 201.03
+              },
+              {
+                "id": "R10-frame-20",
+                "type": "95Al",
+                "length_m": 145.51
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_laatste_helft R10",
+        "source_length_cells": [
+          "Q18",
+          "Q20"
+        ],
+        "source_new_polyline_handle": "112D35",
+        "new_main_geometry_length_m": 201.02701374164357
+      },
+      {
+        "id": "R11",
+        "profile": "evenredig",
+        "connection_count": 16,
+        "verbruik_A": 131.3,
+        "opwek_A": 122.3,
+        "desired_fuse_A": 200,
+        "endpoint_mode": "reference_selected",
+        "end_paths": [
+          {
+            "id": "kader-rekenpad",
+            "segments": [
+              {
+                "id": "R11-frame-18",
+                "type": "150Al",
+                "length_m": 37.73
+              },
+              {
+                "id": "R11-frame-20",
+                "type": "95Al",
+                "length_m": 104.78
+              }
+            ]
+          }
+        ],
+        "source_control_sheet": "Controle_evenredig R11",
+        "source_length_cells": [
+          "Q18",
+          "Q20"
+        ],
+        "source_new_polyline_handle": "112D36",
+        "new_main_geometry_length_m": 37.73254880560209
+      }
+    ]
+  }
+}
