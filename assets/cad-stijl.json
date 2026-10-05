@@ -1,0 +1,500 @@
+{
+  "source": "Style-only geometry from original project, centred at local origin; project values and routes omitted",
+  "symbols": {
+    "NIEUWE MOF": {
+      "primitives": [
+        {
+          "type": "CIRCLE",
+          "layer": "Knooppunt LS AM",
+          "color": 256,
+          "center": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.5
+        }
+      ],
+      "attributes": []
+    },
+    "MOF bestaand-nieuw": {
+      "primitives": [
+        {
+          "type": "LWPOLYLINE",
+          "layer": "01 - Bestaande kabel",
+          "color": 256,
+          "points": [
+            [
+              0.0,
+              0.5,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1e-16,
+              -0.5,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "closed": false
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Knooppunt LS AM",
+          "color": 256,
+          "center": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.5
+        },
+        {
+          "type": "LWPOLYLINE",
+          "layer": "01 - Station",
+          "color": 256,
+          "points": [
+            [
+              0.0,
+              0.5,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -0.5,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "closed": false
+        }
+      ],
+      "attributes": []
+    },
+    "OVERZETTER": {
+      "primitives": [
+        {
+          "type": "LWPOLYLINE",
+          "layer": "02 - Overzetter lijn",
+          "color": 256,
+          "points": [
+            [
+              -1.414213562384247,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.414213562384247,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.414213562384247,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -1.414213562384247,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "closed": true
+        }
+      ],
+      "attributes": []
+    },
+    "RT 1-12": {
+      "primitives": [
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K01",
+          "color": 256,
+          "center": [
+            -8.699512452381214,
+            -6.517050786127271,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K02",
+          "color": 256,
+          "center": [
+            -8.667415156327593,
+            -5.267462948644038,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K03",
+          "color": 256,
+          "center": [
+            -8.635317860273972,
+            -4.017875111160805,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K04",
+          "color": 256,
+          "center": [
+            -8.603220564220237,
+            -2.768287273677572,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K05",
+          "color": 256,
+          "center": [
+            -8.571123268166616,
+            -1.5186994361943107,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K06",
+          "color": 256,
+          "center": [
+            -8.539025972112995,
+            -0.2691115987110777,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K07",
+          "color": 256,
+          "center": [
+            -8.506928676059374,
+            0.9804762387721553,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K08",
+          "color": 256,
+          "center": [
+            -8.474831380005753,
+            2.2300640762554167,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K09",
+          "color": 256,
+          "center": [
+            -8.442734083952132,
+            3.4796519137386497,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K10",
+          "color": 256,
+          "center": [
+            -8.410636787898397,
+            4.729239751221883,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K11",
+          "color": 256,
+          "center": [
+            -8.378539491844776,
+            5.978827588705144,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        },
+        {
+          "type": "CIRCLE",
+          "layer": "Aansluiting LS K12",
+          "color": 256,
+          "center": [
+            -8.346442195791155,
+            7.228415426188377,
+            0.0
+          ],
+          "radius": 0.49999999999999994
+        }
+      ],
+      "attributes": [
+        {
+          "tag": "RT_12:",
+          "insert": [
+            -8.59353488846682,
+            6.293807418318465,
+            0.0
+          ],
+          "align_point": [
+            7.359593328612391,
+            6.703584357397631,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K12",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_11:",
+          "insert": [
+            -6.341842279565753,
+            5.1012327860808,
+            0.0
+          ],
+          "align_point": [
+            7.391690624615876,
+            5.453996519907378,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K11",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_10:",
+          "insert": [
+            -5.527340343774995,
+            3.8881185114732943,
+            0.0
+          ],
+          "align_point": [
+            7.423367546813097,
+            4.220774362096563,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K10",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_09:",
+          "insert": [
+            -5.495243047684198,
+            2.6385306740994565,
+            0.0
+          ],
+          "align_point": [
+            7.455464842932997,
+            2.971186524722725,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K09",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_08:",
+          "insert": [
+            3.5195667085354216,
+            1.6196755408891477,
+            0.0
+          ],
+          "align_point": [
+            7.487562138936482,
+            1.7215986871742643,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K08",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_07:",
+          "insert": [
+            3.551664004509803,
+            0.3700877032824792,
+            0.0
+          ],
+          "align_point": [
+            7.519659435027279,
+            0.47201084962580353,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K07",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_06:",
+          "insert": [
+            3.583761300513288,
+            -0.8795001340913586,
+            0.0
+          ],
+          "align_point": [
+            7.551756731030764,
+            -0.777576987806242,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K06",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_05:",
+          "insert": [
+            -5.366853863466531,
+            -2.3598206759779714,
+            0.0
+          ],
+          "align_point": [
+            7.583854027121561,
+            -2.02716482518008,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K05",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_04:",
+          "insert": [
+            -5.334756567463046,
+            -3.609408513410017,
+            0.0
+          ],
+          "align_point": [
+            7.615951323125046,
+            -3.2767526627285406,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K04",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_03:",
+          "insert": [
+            -5.302659271372249,
+            -4.858996350783855,
+            0.0
+          ],
+          "align_point": [
+            7.648048619215842,
+            -4.526340500218794,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K03",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_01:",
+          "insert": [
+            -8.240885005769087,
+            -7.435293114220258,
+            0.0
+          ],
+          "align_point": [
+            7.712243211310124,
+            -7.0255161751993,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K01",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        },
+        {
+          "tag": "RT_02:",
+          "insert": [
+            -5.270561975281453,
+            -6.108584188390523,
+            0.0
+          ],
+          "align_point": [
+            7.680145915335743,
+            -5.775928337709047,
+            0.0
+          ],
+          "height": 1.0,
+          "rotation": 1.471393401862503,
+          "layer": "Aansluiting LS K02",
+          "color": 256,
+          "halign": 2,
+          "valign": 0,
+          "style": "TM-1.0"
+        }
+      ]
+    }
+  }
+}
