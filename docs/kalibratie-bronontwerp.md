@@ -42,7 +42,7 @@ De kandidaat heeft geen gevonden nieuwe-nieuwe of nieuwe-behouden kruisingen, ge
 
 ## Beginsituatie en grenzen
 
-Ook getest wordt dezelfde oorspronkelijke bron met 747 buurontwerp-entiteiten verwijderd. Stationlocaties, stroomrondjes, rode grenzen en bestaande bronkoppelingen blijven behouden; de lege lokale stijlset levert de benodigde moffen/overzetters/RT. Dit controleert de beginsituatie zonder ingevulde buurgebieden, niet een tweede onbekend station.
+Ook getest: dezelfde oorspronkelijke bron met 747 buurontwerp-entiteiten verwijderd. Stationlocaties, stroomrondjes, rode grenzen en bestaande bronkoppelingen blijven behouden; de lege lokale stijlset levert de benodigde moffen/overzetters/RT. Beide definitieve bronruns voldoen aan dezelfde controles. Aansluitingstoewijzingen en zekeringen zijn identiek; de maximale geometrieafwijking tussen beide nieuwe kabelnetten is 0 m. De verplaatste testbron heeft zijn native xrefpaden achteraf uit de oorspronkelijke bronmetadata hersteld, zonder routes of toewijzingen te wijzigen. Dit controleert de beginsituatie zonder ingevulde buurgebieden, niet een tweede onbekend station.
 
 Stationaantal, richtingnummers, categoriecorrectie, trafocapaciteit en speciale RT-functies in deze tabel zijn projectfeiten. De volgende locatie krijgt eigen bronnen en uitrusting. De automatische maker ondersteunt de vier gevalideerde kabeltypes en eenvoudige boomstructuren; complexe lussen, wisselende materiaaltypen binnen één code of meerdere noodzakelijke splitsingen vragen uitbreiding.
 
