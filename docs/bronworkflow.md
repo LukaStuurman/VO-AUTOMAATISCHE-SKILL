@@ -52,6 +52,8 @@ Mofcontacten worden naar het echte snijpunt gebracht; op een VM wordt het behoud
 
 ## Aansluitbereik en vaste gedeelde offsets
 
+`vo_annotaties.py` plaatst overzetters achter de stroombollen, van het kabelcontact af. Het standaard centrum ligt 2,6 m achter de bol; wijzig het via `rules.overzetter_circle_offset_m` als de tekenruimte dit vraagt. De bollen en kabels worden hiervoor niet verschoven. Leg de koppeling aansluiting-ID → blokhandle vast. Voor richtinginformatie bepaalt de helper de eerste aansluiting langs de voeding: nieuwe main of aanloop naar de mof plus behouden hoofd-/aftakpad. Zet ampèretotaal en rekenlengte samen naast die bol en kies leesruimte tussen aanwezige annotaties. Lees deze grafische plaatsing terug uit de opgeslagen CAD.
+
 `extend_past_last_connection` controleert oorspronkelijke taplocaties langs het eindsegment, zonder ze op het bestaande uiteinde af te klemmen. Een nieuwe hoofdkabel loopt net voorbij de laatste aansluitkabel; de standaard tekenruimte is 0,6 m, zonder een stationsspecifieke eindpositie vast te leggen. Controleer service-/gedeelde aansluitkabels en de eindmof, herprojecteer taps op de aangepaste lijn en reken alle paden opnieuw.
 
 `vo_gedeelde_offsets.py` bouwt de gedeelde lijnen uit één referentielijn met vaste lanevolgorde en 0,20 m offset, inclusief de hoekverbindingen. Controleer de opgeslagen geometrie tegen de offsetcurve. Verander na deze opbouw geen bocht of oversteek onafhankelijk per richting; toets de hele bundel tegen terrein, oversteken, andere kabels en mofcontacten. `rules.straight_frontage_house_side` kiest binnen deze voorwaarden een lange rechte stoepcorridor dichter bij de huizen; het is geen toestemming om door tuinen te gaan.
