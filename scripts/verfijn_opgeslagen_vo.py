@@ -27,6 +27,14 @@ def main():
  for name,g in lines.items():
   protected=unary_union([shape(p['geometry']).difference(Point(d['feed']['xy']).buffer(.2)) if d['id']==name and d.get('feed') else shape(p['geometry']) for d in data['directions'] for p in d['retained']]);lines[name],_=perpendicular_crossings(g,road,obstacles,sources['region'],name,data['crossing_sites'],protected)
  for d in data['directions']:d['display_main']=lines[d['id']].__geo_interface__
+ from vo_kabelafwerking import splice_after_crossing
+ data['splice_after_crossing_changes']=[]
+ for d in data['directions']:
+  if d['id'] not in cfg['rules'].get('splice_after_crossing',[]):continue
+  lines[d['id']],change=splice_after_crossing(d,lines[d['id']],shape(data['existing_chains'][d['primary_code']]),road,obstacles)
+  d['display_main']=lines[d['id']].__geo_interface__
+  if change:data['splice_after_crossing_changes'].append(change)
+  else:raise ValueError('AM niet veilig direct na oversteek geplaatst: '+d['id'])
  out=Path(a.output).resolve();data=write_corrected_candidate(data,old,out);data['removal_ledger']=removal_ledger(sources,data['directions']);data['drawing']['crossings']=[{'a':x,'b':y,'geometry':g.intersection(h).difference(router.station).__geo_interface__} for (x,g),(y,h) in itertools.combinations(lines.items(),2) if not g.intersection(h).difference(router.station).is_empty];data['drawing']['self_crossings']=[n for n,g in lines.items() if not g.is_simple];data['checks']=validate_saved(data,sources,router);data['all_direction_checks']=all(d['passes'] for d in data['directions']);data['revision_provenance']={'previous_candidate':str(previous),'previous_sha256':hashlib.sha256(previous.read_bytes()).hexdigest(),'reference_solution_read':False,'scope':'Lange rechte bundel, werkelijke mofstatus/contacten en knip in eigen projectweergave; toewijzingen behouden'};data['script_hashes']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in Path(__file__).parent.glob('*.py')}
  for name,value in [('Ontwerp met CAD-controle.json',data),('Controleblad.json',data['checks']),('Broninvoer gebruikt.json',cfg)]:out.joinpath(name).write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding='utf8')
  print('Opgeslagen CAD-controles:',data['checks']['calculation_and_new_bundle_pass'],flush=True)
