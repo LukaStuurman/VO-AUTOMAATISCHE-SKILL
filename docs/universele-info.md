@@ -314,6 +314,10 @@ De standaard is genereren uit oorspronkelijke bronnen volgens [bronworkflow](bro
 
 ## 12. Concrete oplevering en grenzen
 
+**Oversteekregel, verduidelijkt door Luka op 6 oktober 2026:** alle wegoversteken zijn recht én **haaks (90°) op de lokale wegrichting**. Nooit schuin over de rijbaan, ook niet als die kabel geometrisch een rechte lijn is. Bepaal de lokale wegas met BGT/topografie, plaats bochten buiten de rijbaan en gebruik bij meerdere kabels dezelfde oversteekplaats met 0,20 m onderlinge afstand. De controle moet zowel rechtheid als haaksheid toetsen.
+
+Aanvulling uit de beoordeling van 6 oktober 2026: [bestaande eindmoffen, rechte corridors langs bomen, eerdere oversteken en complete annotatie-opruiming](correcties-06-10-2026.md). Een aansluitingsvrije arm wordt niet zonder benodigde doorvoeding aan een aftakmof gehouden. Gebruik eerst alle richtingen en externe voedingen om te bepalen of een deel werkelijk ongebruikt is.
+
 Lever DXF/DWG, bekeken overzicht/detail, aansluitregister, fysieke/laatste-aansluitingpaden, trafoberekening en een per-deelverwijderregister. Controleer opgeslagen geometrie op nieuwe en behouden kabels, vegetatie en rechte gedeelde wegkruisingen. De stijlset werkt zonder ingevulde buurgebieden. Catalogus/automatische topologiebeperkingen staan in de skill; ontbrekende grondpositie, wortelzones en externe voedingen blijven open punten.
 
 Zie het [kalibratieverslag](kalibratie-bronontwerp.md) voor het geteste bereik. De oudere [referentiegestuurde assembler](../scripts/maak_vo_tekening.py) blijft beschikbaar voor expliciete historische reconstructies en geldt niet als bronontwerp.
