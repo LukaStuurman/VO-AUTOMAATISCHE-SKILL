@@ -16,6 +16,16 @@ Bij een correctie op een bestaand ontwerp kan `rules.refinement_scope` de door d
 
 Benodigd: Python met ezdxf, shapely, numpy, scipy en matplotlib.
 
+## Een eigen bronkandidaat corrigeren
+
+Gebruik `herzie_bronontwerp.py vorige-kandidaat.json broninvoer.json --output resultaat` voor een gerichte tracé-/symboolcorrectie op een eigen eerder uit bronnen gemaakte kandidaat. De aansluitinventaris moet gelijk zijn; groepen en bestaande voedingen blijven behouden. Een uitgewerkte gebruikersoplossing of referentiegestuurde reconstructie is niet toegestaan als vorige kandidaat. Dit is een revisie, geen nieuwe onafhankelijke ontwerptest vanaf nul.
+
+De revisie onderzoekt de daadwerkelijk getekende erfdoorsnijding, ook als de oorspronkelijke middenlijn nog op de stoep lag. Het herstelde gezamenlijke tracé wordt opnieuw doorgerekend en teruggelezen. Moflocaties zijn beschermde contactpunten tijdens bundelherstel. Houd de bestaande stationsuitloop stabiel wanneer een lokale stoepaanloop langer/korter wordt.
+
+`rules.bundle_erf_margin_m` reserveert zoekruimte aan de erfzijde voor de bundel. `rules.drawing_stoep_tolerance_m` is beperkte grafische ruimte buiten de BGT-voetpadstrook bij krapte; standaard 0. Voor de beoordeelde correctie is 0,20 m als werkwaarde gebruikt. Dit is geen toegestane fysieke afstand in een tuin en geen versoepeling voor bomen. De fysieke zoekroute houdt erf uitgesloten. Een kleine tekenoverschrijding bij de stoep kan daardoor worden geaccepteerd zonder een grote omweg af te dwingen.
+
+Het stijlbestand bevat `BESTAANDE MOF` voor behouden hoofdkabeluiteinden en echte bestaande hoofd-/aftakverbindingen. Registreer bestaande eindmoffen en nieuwe fysieke knippen apart; symboolgebruik is geen bewijs van bestaande aanwezigheid in het veld.
+
 ```text
 python scripts/ontwerp_uit_bronnen.py broninvoer.json --output resultaat
 python scripts/test_reken_richtingen.py
