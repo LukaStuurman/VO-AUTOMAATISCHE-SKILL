@@ -9,7 +9,7 @@ def preview(data,out):
  from matplotlib.collections import LineCollection
  from ezdxf import path as ep,bbox
  from shapely.geometry import Polygon
- cfg=data['config'];main=ezdxf.readfile(data['drawing']['file']);klic=ezdxf.readfile(cfg['klic_dxf']);topo=ezdxf.readfile(cfg['topo_dxf']);region=Polygon(main.entitydb[cfg['boundary_handle']].get_points('xy'));station=bbox.extents([main.entitydb[cfg['station_handle']]])
+ cfg=data['config'];main=ezdxf.readfile(data['drawing']['file']);klic=ezdxf.readfile(cfg.get('klic_display_dxf',cfg['klic_dxf']));topo=ezdxf.readfile(cfg['topo_dxf']);region=Polygon(main.entitydb[cfg['boundary_handle']].get_points('xy'));station=bbox.extents([main.entitydb[cfg['station_handle']]])
  x0,y0,x1,y1=region.bounds;cx,cy=station.center.x,station.center.y
  bounds={'Overzicht':(x0-5,x1+5,y0-5,y1+5),'Stationsdetail':(cx-16,cx+104,cy-50,cy+50),'Stationsuitloop':(cx-10,cx+42,cy-36,cy+14)};out=Path(out)
  for name,bb in bounds.items():
