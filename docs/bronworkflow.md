@@ -24,7 +24,7 @@ De revisie onderzoekt de daadwerkelijk getekende erfdoorsnijding, ook als de oor
 
 `rules.bundle_erf_margin_m` reserveert zoekruimte aan de erfzijde voor de bundel. `rules.drawing_stoep_tolerance_m` is beperkte grafische ruimte buiten de BGT-voetpadstrook bij krapte; standaard 0. Voor de beoordeelde correctie is 0,20 m als werkwaarde gebruikt. Dit is geen toegestane fysieke afstand in een tuin en geen versoepeling voor bomen. De fysieke zoekroute houdt erf uitgesloten. Een kleine tekenoverschrijding bij de stoep kan daardoor worden geaccepteerd zonder een grote omweg af te dwingen.
 
-Het stijlbestand bevat `BESTAANDE MOF` voor behouden hoofdkabeluiteinden en echte bestaande hoofd-/aftakverbindingen. Registreer bestaande eindmoffen en nieuwe fysieke knippen apart; symboolgebruik is geen bewijs van bestaande aanwezigheid in het veld.
+Het stijlbestand bevat `BESTAANDE MOF` uitsluitend voor bronmatig reeds aanwezige moffen, met **Bestaand** ernaast. Nieuwe knip-/eindlocaties op oude kabel zijn `NIEUWE MOF`. Nieuwe VM/AM-verbindingen gebruiken het bestaand-nieuw-blok. Controleer dat de mof alle aangesloten kabels raakt en dat een VM geen ongebruikte arm houdt.
 
 ```text
 python scripts/ontwerp_uit_bronnen.py broninvoer.json --output resultaat
@@ -39,3 +39,9 @@ De modules scheiden broninventarisatie, terreinroutes, richtingkeuze, gezamenlij
 ## Vergelijken achteraf
 
 Een afzonderlijke evaluator leest de opgeslagen kandidaat en de gebruikersoplossing. Vergelijk aansluit-ID's, zekeringen, behouden delen, overzetters en de werkelijk opgeslagen polylines. Meet corridorovereenkomst in beide richtingen met verklaarde tolerantie. Bewaar ook mislukte kandidaten en de algemene regelwijzigingen. Een kalibratie op hetzelfde station bewijst reproduceerbaarheid uit bronnen; test vervolgens een ander station voordat je algemene nauwkeurigheid claimt.
+
+## Lange rechte bundels en mofcorrecties
+
+`verfijn_opgeslagen_vo.py vorige-kandidaat.json broninvoer.json --output resultaat --straight <richtinggroepen>` herziet een eigen bronkandidaat. Geef de richtingen op die dezelfde straat/bomenrij volgen; geen voorbeeldcoördinaten of gewenste zekeringen. Alle betrokken kabels krijgen één rechte corridor en vaste lanevolgorde. Echte oversteken worden opnieuw haaks gemaakt. `rules.straight_bundle_groups` kan dezelfde groepen in de bronmaker aanwijzen.
+
+Mofcontacten worden naar het echte snijpunt gebracht; op een VM wordt het behouden interval op de mof afgekapt. Een projektkopie van de KLIC knipt aantoonbaar ongebruikte LS-stukken en beschermt andere gebruikte delen. Op Windows wordt die kopie met de aanwezige AutoCAD Core Console als DWG gekoppeld aan de resultaat-DXF. Bewaar de bijhorende project-xref bij de tekening. De originele KLIC/WFS wordt nooit aangepast. Bronstatus, fysiek contact, labels, capaciteit en daadwerkelijk opgeslagen CAD worden samen getoetst.
