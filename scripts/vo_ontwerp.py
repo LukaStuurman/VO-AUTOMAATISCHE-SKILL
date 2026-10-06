@@ -133,6 +133,10 @@ def design(s,router,cfg):
     before=[x for x in external if x<low-.05];after=[x for x in external if x>high+.05]
     newlo=max(part['lo'],(max(before)+low)/2 if before else min(pos,low))
     newhi=min(part['hi'],(min(after)+high)/2 if after else high+rules.get('joint_separation_m',2))
+    if rules.get('remove_unused_existing_parts') and d['new_codes']:
+     # A midpoint in the gap is a possible isolation location, not a demand
+     # to keep an unserved arm attached to the new joint.
+     newlo=max(part['lo'],min(pos,low));newhi=min(part['hi'],max(pos,high)+rules.get('joint_separation_m',2))
     d['separated_existing_intervals']=[{'code':part['code'],'lo':part['lo'],'hi':newlo},{'code':part['code'],'lo':newhi,'hi':part['hi']}]
     part['lo']=newlo;part['hi']=newhi;part['geometry']=substring(g,newlo,newhi)
    if d['new_codes']:
