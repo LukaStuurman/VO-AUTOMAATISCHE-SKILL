@@ -11,6 +11,7 @@ def draw_source_design(data,out):
  from reken_richtingen import calculate_path,CATALOGUE
  from vo_terrein import unused_parts
  cfg=data['config'];doc=ezdxf.readfile(cfg['base_dxf']);msp=doc.modelspace();region=Polygon(doc.entitydb[cfg['boundary_handle']].get_points('xy'));station=bbox.extents([doc.entitydb[cfg['station_handle']]]);station_box=box(station.extmin.x,station.extmin.y,station.extmax.x,station.extmax.y)
+ data['directions'].sort(key=lambda d:int(d['id'][1:]))
  from vo_stijl import style_templates
  templates=style_templates(doc)
  generated=[];symbol_types={}
@@ -174,6 +175,11 @@ def draw_source_design(data,out):
  display,data['shared_offset_rebuild']=shared_offsets(display,ordered,obstacles,region,pitch)
  for d in ordered:
   if not d.get('feed'):display[d['id']],_=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
+ from vo_gedeelde_oversteek import merge_nearby_crossings
+ display,_=merge_nearby_crossings(data,display,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,pitch)
+ for d in ordered:d['display_main']=display[d['id']].__geo_interface__
+ from vo_stationsuitloop import build_station_exit,draw_tamps
+ display=build_station_exit(data,doc,obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))));ordered=data['directions'];cfg=data['config']
  data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
@@ -220,6 +226,7 @@ def draw_source_design(data,out):
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
  supplemental_work(data,all_source_joints,doc,previous_parts=previous_retained);draw_supplemental(data,symbol,text,line)
+ draw_tamps(data,doc,symbol,text,line)
  data['obsolete_end_cleanup']=clean_obsolete_end_annotations(doc,ordered,region,original_chains)
  # Place the RT legend by empty-space scoring, not a reference coordinate.
  occupied=unary_union([g.buffer(2) for g in display.values()]+[Point(r['xy']).buffer(2) for r in data['connections']]);cx,cy=station.center.x,station.center.y;bounds=region.bounds;candidates=[]
@@ -248,11 +255,11 @@ def draw_source_design(data,out):
    if len(found)==1:candidate=found[0]
   if candidate.exists():block.block.dxf.xref_path=str(candidate.resolve())
   else:unresolved.append(block.name)
- crossings=[]
- for (a,g),(b,h) in itertools.combinations(display.items(),2):
+ crossings=[];network=dict(display,**{r['id']:shape(r['geometry']) for r in data.get('station_tamps',[])})
+ for (a,g),(b,h) in itertools.combinations(network.items(),2):
   q=g.intersection(h).difference(station_box)
   if not q.is_empty:crossings.append({'a':a,'b':b,'geometry':q.__geo_interface__})
- cable_style=apply_cable_style(doc,new_layers=[d['layer'] for d in ordered])
+ cable_style=apply_cable_style(doc,new_layers=[d['layer'] for d in ordered]+[r['layer'] for r in data.get('station_tamps',[])])
  doc.header['$INSUNITS']=6;doc.set_modelspace_vport(height=360,center=region.centroid.coords[0]);audit=doc.audit();out=Path(out);out.mkdir(exist_ok=True);file=out/(cfg['station_id']+' - LS VO uit brongegevens.dxf');doc.saveas(file)
  restore_source_xrefs(doc,data);doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
