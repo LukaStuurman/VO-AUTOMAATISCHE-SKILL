@@ -13,7 +13,7 @@ def shared_offsets(lines,directions,obstacles,region,pitch=.2,_secondary=True):
   positions=sorted(set([0,g.length]+[min(g.length,i) for i in range(1,math.ceil(g.length))]));runs=[];current=[]
   for at in positions:
    p=g.interpolate(at);q=axis.project(p);near=axis.interpolate(q);ga=g.interpolate(max(0,at-1));gb=g.interpolate(min(g.length,at+1));aa=axis.interpolate(max(0,q-1));ab=axis.interpolate(min(axis.length,q+1));u=(gb.x-ga.x,gb.y-ga.y);v=(ab.x-aa.x,ab.y-aa.y);den=math.hypot(*u)*math.hypot(*v);cos=(u[0]*v[0]+u[1]*v[1])/den if den else -1
-   close=p.distance(near)<1.5 and cos>.7 and (anchor is None or p.distance(anchor)>3)
+   close=at>=d.get('station_exit_protected_m',0) and p.distance(near)<1.5 and cos>.7 and (anchor is None or p.distance(anchor)>3)
    if close and (not current or q>=current[-1][1]-.05):current.append((at,q))
    else:
     if current and current[-1][1]-current[0][1]>8:runs.append(current)
