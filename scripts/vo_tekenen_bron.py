@@ -1,5 +1,5 @@
 """Teken alleen uit het nieuwe bronontwerp en de oorspronkelijke stijlblokken."""
-import json,math,re,collections,itertools
+import json,math,re,collections,itertools,copy
 from pathlib import Path
 
 def draw_source_design(data,out):
@@ -14,8 +14,9 @@ def draw_source_design(data,out):
  from vo_stijl import style_templates
  templates=style_templates(doc)
  generated=[];symbol_types={}
- from vo_eindmoffen import existing_end_joints,retained_end_status,clean_obsolete_end_annotations
- original_chains={c:shape(g) for c,g in data['existing_chains'].items()};existing_joints=existing_end_joints(cfg['klic_dxf'])
+ from vo_eindmoffen import existing_end_joints,existing_joint_objects,retained_end_status,clean_obsolete_end_annotations
+ from vo_mofverbindingen import align_splice_contacts,existing_branch_evidence
+ original_chains={c:shape(g) for c,g in data['existing_chains'].items()};all_source_joints=existing_joint_objects(cfg['klic_dxf']);existing_joints=[j for j in all_source_joints if j['kind']=='end']
  # Geometry filters use source vegetation and topo, never the author drawing.
  from vo_terrein import vegetation_class
  from vo_topografie import topography_obstacles
@@ -143,6 +144,15 @@ def draw_source_design(data,out):
  data['bundle_repairs']=bundle_repairs
  from vo_bundel import separate_free_ends
  display,data['free_end_adjustments']=separate_free_ends(display,ordered,pitch)
+ from vo_rechte_straat import straighten_street_bundle
+ data['straight_street_bundles']=[]
+ for names in cfg['rules'].get('straight_bundle_groups',[]):
+  lane_surfaces=surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));lane_road=road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));tree_points=[shape(f['geometry']) for f in active_features('vegetatieobject_punt')]
+  display,change=straighten_street_bundle(display,names,obstacles,lane_surfaces,lane_road,region,pitch,tree_points,anchors)
+  if change:data['straight_street_bundles'].append(change)
+  for name,g in display.items():display[name],_=perpendicular_crossings(g,lane_road,obstacles,region,name,sites,retained_obstacles(name))
+ previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
+ data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
   from vo_paden import geometry_checks
@@ -155,18 +165,17 @@ def draw_source_design(data,out):
  for d in ordered:
   layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[];d['retained_end_work']=[]
   if feed:
-   p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind='AM' if d['new_codes'] else 'VM';retained_type=next(part['type'] for part in d['retained'] if part['code']==d['primary_code']);text(kind+' 150Al->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
+   p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind=d['splice_kind'];retained_type=next(part['type'] for part in d['retained'] if part['code']==d['primary_code']);text(kind+' 150Al->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
    for part in d['retained']:
     rg=shape(part['geometry']);line(rg,'01 - Bestaande kabel')
     for p in [rg.coords[0],rg.coords[-1]]:
      if math.dist(p,feed['xy'])<1.0:continue
      if any(other is not part and shape(other['geometry']).distance(Point(p))<.05 for other in d['retained']):continue
      status=retained_end_status(p,original_chains[part['code']],existing_joints)
-     d['retained_end_work'].append(dict(status,code=part['code'],xy=list(p),symbol='BESTAANDE MOF'))
-     symbol('BESTAANDE MOF',p,'01 - Bestaande kabel')
+     d['retained_end_work'].append(dict(status,code=part['code'],xy=list(p),symbol='NIEUWE MOF' if status['new_required'] else 'BESTAANDE MOF'))
      if not status['new_required']:
-      d['existing_end_mofs'].append(dict(status,code=part['code'],xy=list(p)));continue
-     text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
+      symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');text('Bestaand',(p[0]+.8,p[1]+.8),'01 - Bestaande kabel',.7);d['existing_end_mofs'].append(dict(status,code=part['code'],xy=list(p)));continue
+     symbol('NIEUWE MOF',p,layer);text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
     midpoint=rg.interpolate(.5,normalized=True);a,b=rg.coords[0],rg.coords[-1];angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;text(part['type']+' / (was '+part['code'][3:]+')',(midpoint.x+.6,midpoint.y+.6),'01 - Bestaande kabel',.75,angle)
   if d['new_codes']:
    endpoint=g.coords[-1];symbol('NIEUWE MOF',endpoint,layer);text('EM',(endpoint[0]+.8,endpoint[1]+.8),layer,.7);ends.append(list(endpoint))
@@ -179,7 +188,9 @@ def draw_source_design(data,out):
    if pa.distance(pb)>.1:continue
    p=(pa.x,pa.y)
    if feed and math.dist(p,feed['xy'])<.2:continue
-   symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');d['existing_branch_mofs'].append({'xy':list(p),'codes':[first['code'],second['code']]})
+   evidence=existing_branch_evidence(p,all_source_joints)
+   if not evidence:raise ValueError('Bestaande hoofd-/aftakmof zonder bronbewijs: '+d['id'])
+   symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');text('Bestaand',(p[0]+.8,p[1]+.8),'01 - Bestaande kabel',.7);d['existing_branch_mofs'].append({'xy':list(p),'codes':[first['code'],second['code']],'source_joint':evidence})
   # Label long street segments, in compact rows separated by direction offset.
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
@@ -216,6 +227,13 @@ def draw_source_design(data,out):
   q=g.intersection(h).difference(station_box)
   if not q.is_empty:crossings.append({'a':a,'b':b,'geometry':q.__geo_interface__})
  doc.header['$INSUNITS']=6;doc.set_modelspace_vport(height=360,center=region.centroid.coords[0]);audit=doc.audit();out=Path(out);out.mkdir(exist_ok=True);file=out/(cfg['station_id']+' - LS VO uit brongegevens.dxf');doc.saveas(file)
+ if any(row.get('old_interval') for row in data['splice_contact_adjustments']):
+  from vo_klic_weergave import make_clipped_klic_view,convert_klic_dwg
+  view,_=make_clipped_klic_view(data,previous_retained,out);dwg=convert_klic_dwg(view);matches=[]
+  for block in doc.blocks:
+   if block.block.dxf.flags&4 and 'KLIC' in block.name.upper() and 'LS' in block.name.upper():block.block.dxf.xref_path=str(dwg);matches.append(block.name)
+  if len(matches)!=1:raise ValueError('KLIC-projectweergave niet eenduidig gekoppeld.')
+  data['klic_display_reference']={'block':matches[0],'dwg':str(dwg),'dxf':str(view),'source_unchanged':True};doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
  data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
