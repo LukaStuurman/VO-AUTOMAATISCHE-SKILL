@@ -18,10 +18,10 @@ def crossing_pairs(lines,excluded,ignored=None):
  ignored=ignored or set()
  return [(a,b,g.intersection(h).difference(excluded)) for (a,g),(b,h) in itertools.combinations(lines.items(),2) if frozenset([a,b]) not in ignored and not g.intersection(h).difference(excluded).is_empty]
 
-def repair_bundle(lines,pitch,excluded,obstacles=None,fixed=None,ignored=None):
+def repair_bundle(lines,pitch,excluded,obstacles=None,fixed=None,ignored=None,anchors=None):
  from shapely.geometry import Point,LineString
  from shapely.ops import substring
- lines=dict(lines);log=[];fixed=fixed or set();ignored=ignored or set()
+ lines=dict(lines);log=[];fixed=fixed or set();ignored=ignored or set();anchors=anchors or {}
  def score(candidate):
   pairs=crossing_pairs(candidate,excluded,ignored)
   return len(pairs),sum(len(q.geoms) if hasattr(q,'geoms') else 1 for _,_,q in pairs)
@@ -38,8 +38,10 @@ def repair_bundle(lines,pitch,excluded,obstacles=None,fixed=None,ignored=None):
    if not points:continue
    for reference,changed in [(a,b),(b,a)]:
     if changed in fixed:continue
-    axis=lines[reference];old=lines[changed];positions=[old.project(p) for p in points]
-    for margin in [2,4,8,12,20]:
+    axis=lines[reference];old=lines[changed];positions=[old.project(p) for p in points];max_deviation=max(4,pitch*8)
+    local_obstacles=obstacles.intersection(old.envelope.buffer(max_deviation+.1)) if obstacles is not None else None
+    old_obstacle_length=old.intersection(local_obstacles).length if local_obstacles is not None else 0
+    for margin in [2,4,8,12,20,40,80]:
      lo=max(.01,min(positions)-margin);hi=min(old.length-.01,max(positions)+margin)
      if hi<=lo:continue
      start=old.interpolate(lo);end=old.interpolate(hi)
@@ -55,8 +57,9 @@ def repair_bundle(lines,pitch,excluded,obstacles=None,fixed=None,ignored=None):
       for p in coords[1:]:
        if math.dist(clean[-1],p)>.001:clean.append(p)
       candidate=LineString(clean)
-      if not candidate.is_simple or candidate.hausdorff_distance(old)>pitch*8:continue
-      if obstacles is not None and candidate.intersection(obstacles).length>old.intersection(obstacles).length+.001:continue
+      if not candidate.is_simple or candidate.hausdorff_distance(old)>max_deviation:continue
+      if any(candidate.distance(Point(p))>1e-5 for p in anchors.get(changed,[])):continue
+      if local_obstacles is not None and candidate.intersection(local_obstacles).length>old_obstacle_length+.001:continue
       changed_lines=dict(lines);changed_lines[changed]=candidate;newscore=score(changed_lines)
       if newscore>=initial:continue
       cost=(newscore,candidate.hausdorff_distance(old),abs(candidate.length-old.length))
@@ -85,3 +88,22 @@ def straight_road_crossings(line,road,obstacles):
  for p in result[1:]:
   if math.dist(p,clean[-1])>.001:clean.append(p)
  return LineString(clean)
+
+def separate_free_ends(lines,directions,pitch):
+ from shapely.geometry import Point
+ from shapely.ops import substring
+ result=dict(lines);log=[]
+ def coordinates(hit):
+  if hit.geom_type in ['Point','LineString']:return list(hit.coords)
+  return [p for part in getattr(hit,'geoms',[]) for p in coordinates(part)]
+ for d in directions:
+  if d.get('feed') or not d.get('new_codes'):continue
+  name=d['id'];g=result[name];end=Point(g.coords[-1])
+  contacts=[g.intersection(h) for other,h in result.items() if other!=name and g.intersection(h).distance(end)<pitch*2]
+  if not contacts:continue
+  positions=[g.project(Point(p)) for hit in contacts for p in coordinates(hit)]
+  if not positions:continue
+  at=min(positions)-pitch*2
+  if at<g.length-2 or at<=1:continue
+  replacement=substring(g,0,at);result[name]=replacement;log.append({'direction':name,'old_xy':list(g.coords[-1]),'new_xy':list(replacement.coords[-1]),'shortened_m':g.length-replacement.length,'reason':'Vrij einde van nieuwe kabel raakt naastliggende richting; alle aansluitingstoewijzingen behouden'})
+ return result,log
