@@ -45,5 +45,20 @@ def validate_saved(data,sources,router):
  data['drawing']['saved_symbol_counts']=dict(symbols)
  data['drawing']['nonperpendicular_crossings']=[r for r in roads if not r['perpendicular']]
  data['drawing']['erf_intersections']=private_hits
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ feed_errors=[];mof_errors=[]
+ from ezdxf import bbox
+ for d in data['directions']:
+  if d.get('feed'):
+   p=Point(d['feed']['xy']);primary=next(part for part in d['retained'] if part['code']==d['primary_code']);old=shape(primary['geometry'])
+   if lines[d['id']].distance(p)>.01 or old.distance(p)>.01:feed_errors.append({'direction':d['id'],'new_gap_m':lines[d['id']].distance(p),'retained_gap_m':old.distance(p)})
+   if d.get('splice_kind')=='VM' and min(p.distance(Point(old.coords[0])),p.distance(Point(old.coords[-1])))>.01:feed_errors.append({'direction':d['id'],'reason':'VM ligt midden op behouden kabel; ongebruikte arm of verkeerde mofsoort'})
+  for work in d.get('retained_end_work',[]):
+   matches=[name for handle,name in data['drawing']['symbol_types'].items() if name in ['NIEUWE MOF','BESTAANDE MOF'] and doc.entitydb.get(handle) is not None and Point(bbox.extents([doc.entitydb[handle]]).center.xy).distance(Point(work['xy']))<.05]
+   expected='NIEUWE MOF' if work['new_required'] else 'BESTAANDE MOF'
+   if matches!=[expected]:mof_errors.append({'direction':d['id'],'xy':work['xy'],'expected':expected,'found':matches})
+  for work in d.get('existing_end_mofs',[])+d.get('existing_branch_mofs',[]):
+   labels=[e for e in doc.modelspace().query('TEXT') if e.dxf.text=='Bestaand' and Point(e.dxf.insert.xy).distance(Point(work['xy']))<2]
+   if not labels:mof_errors.append({'direction':d['id'],'xy':work['xy'],'reason':'Werkelijk bestaande mof mist Bestaand-tekst'})
+ data['drawing']['feed_contact_errors']=feed_errors;data['drawing']['mof_status_errors']=mof_errors
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
