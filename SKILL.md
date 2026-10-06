@@ -30,6 +30,10 @@ Uitgewerkte buren leveren grenzen, bestaande voedingen en stijl. Zonder ingevuld
 
 **Mofstatus volgt de werkelijke bron:** alleen een al aanwezige mof krijgt `BESTAANDE MOF` met **Bestaand** ernaast. Een nieuw einde/knippunt krijgt `NIEUWE MOF`, ook op behouden kabel. Nieuwe VM/AM-verbindingen krijgen het bestaand-nieuw-blok. Een VM heeft één behouden arm; knip op de mof en verwijder alleen het ongebruikte deel. Een AM staat op de werkelijke verbinding van alle kabelarmen: toets nieuwe én bestaande kabel tegen de mofpositie. Bescherm ander gebruik en werk ook de projectweergave van oude lijnen/teksten bij. De originele KLIC/WFS blijft intact.
 
+Een bron-aftakmof op een behouden hoofdkabel blijft zichtbaar met **Bestaand**, ook wanneer de aftakkabel wordt vervangen. Dop de ongebruikte aftak direct na die mof af met een nieuwe eindmof; behoud alleen het benodigde korte stuk. Controleer bij een knip ook het achterblijvende uiteinde van het aangrenzende trafogebied en teken daar een nieuwe eindmof. Een geschikte AM komt bij voorkeur direct na de haakse oversteek op het echte bronkabelcontact, zonder onnodige nieuwe kabel langs dezelfde oude kabel. Bereken daarna opnieuw alle paden.
+
+Kabelpolylijnen, bestaand en nieuw, krijgen **global width 0,1**. Nieuwe kabels krijgen expliciet **DASHED** en **linetype scale 0,0035**. Pas dit ook toe op de eigen projectweergave van bestaande kabels. Lees de eigenschappen terug uit de opgeslagen CAD; wijzig geen grenzen, topografie, symbolen of oorspronkelijke bronbestanden om deze kabelstijl toe te passen.
+
 ## Hulpmiddelen en grenzen
 
 `scripts/ontwerp_uit_bronnen.py` inventariseert bronnen, maakt een kandidaat, tekent en controleert de opgeslagen geometrie. Alleen gedeclareerde CAD/GIS-bronnen zijn invoer; oplossingspaden kunnen geblokkeerd worden. Bron-/scripthashes en gelezen bronnen worden bewaard. `scripts/reken_richtingen.py` rekent ook losse expliciete structuren.
