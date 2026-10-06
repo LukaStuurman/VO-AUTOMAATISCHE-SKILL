@@ -265,5 +265,9 @@ def draw_source_design(data,out):
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
  data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types;data['drawing']['cable_style']=cable_style
  from vo_annotaties import apply_annotation_layout
- apply_annotation_layout(doc,data);doc.saveas(file)
+ apply_annotation_layout(doc,data)
+ from vo_afzekeringsblok import apply_fuse_legend
+ apply_fuse_legend(doc,data)
+ from vo_tekst_en_draworder import apply_text_layout
+ apply_text_layout(doc,data);doc.saveas(file)
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
