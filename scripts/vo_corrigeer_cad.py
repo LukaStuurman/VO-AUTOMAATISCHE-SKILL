@@ -11,10 +11,16 @@ def write_corrected_candidate(data,previous,out):
  from vo_eindmoffen import existing_joint_objects,retained_end_status
  from vo_mofverbindingen import align_splice_contacts,existing_branch_evidence
  from vo_paden import geometry_checks
- from vo_klic_weergave import make_clipped_klic_view,convert_klic_dwg
- from vo_kabelafwerking import supplemental_work,draw_supplemental,apply_cable_style
+ from vo_kabelafwerking import supplemental_work,draw_supplemental,apply_cable_style,restore_source_xrefs
  out=Path(out).resolve();out.mkdir(exist_ok=True);doc=ezdxf.readfile(previous['drawing']['file']);msp=doc.modelspace();cfg=data['config'];templates={k:v.copy() for k,v in style_templates(doc).items()};lines={d['id']:shape(d['display_main']) for d in data['directions']};chains={c:shape(g) for c,g in data['existing_chains'].items()};old_parts={d['id']:copy.deepcopy(d['retained']) for d in previous['directions']}
  data['splice_contact_adjustments']=align_splice_contacts(data['directions'],lines,chains);joints=existing_joint_objects(cfg['klic_dxf']);end_joints=[j for j in joints if j['kind']=='end'];generated=list(previous['drawing']['new_entity_handles']);symbol_types=dict(previous['drawing']['symbol_types'])
+ # Reproject source taps after geometry changes, instead of carrying a former
+ # endpoint-clamped new_tap into the last-connection calculation.
+ connection_index={r['id']:r for r in data['connections']}
+ for d in data['directions']:
+  for r in d['records']:
+   if r['code'] in d['new_codes'] or r.get('new_connection'):
+    r['new_tap']=list(lines[d['id']].interpolate(lines[d['id']].project(Point(r['tap']))).coords[0]);connection_index[r['id']]['new_tap']=r['new_tap']
  for d in data['directions']:
   layer=d['layer'];g=lines[d['id']];old=next(p for p in previous['directions'] if p['id']==d['id']);old_met=f'{old["limiting"]["length_m"]:.2f}'.replace('.',',')+'Met.';d['geometry_calculation']=geometry_checks(d,g);d['limiting']=d['geometry_calculation']['selected']['limiting'];d['passes']=d['geometry_calculation']['selected']['passes'];d['display_main_length_m']=g.length
   for handle in list(generated):
@@ -63,11 +69,7 @@ def write_corrected_candidate(data,previous,out):
  if len(overzetters)!=len(records):raise ValueError('Overzetterregister en CAD verschillen.')
  for handle,r in zip(overzetters,records):
   e=doc.entitydb[handle];_,contact=nearest_points(Point(r['xy']),lines[r['direction']]);dx=contact.x-r['xy'][0];dy=contact.y-r['xy'][1];L=math.hypot(dx,dy) or 1;p=(r['xy'][0]+dx/L*2.6,r['xy'][1]+dy/L*2.6);center=bbox.extents([e]).center;e.translate(p[0]-center.x,p[1]-center.y,0)
- view,removals=make_clipped_klic_view(data,old_parts,out);dwg=convert_klic_dwg(view);matched=[]
- for block in doc.blocks:
-  if block.block.dxf.flags&4 and 'KLIC' in block.name.upper() and 'LS' in block.name.upper():block.block.dxf.xref_path=str(dwg);matched.append(block.name)
- if len(matched)!=1:raise ValueError('Project-KLIC-xref niet eenduidig gekoppeld: '+str(matched))
- data['klic_display_reference']={'block':matched[0],'dwg':str(dwg),'dxf':str(view),'source_unchanged':True}
+ restore_source_xrefs(doc,data);removals=[]
  # Native cable text attached only to the removed arm must not remain orphaned.
  data['removed_native_labels']=[]
  for e in list(msp.query('TEXT MTEXT')):
