@@ -54,3 +54,7 @@ Nog open: twee afwijkende LS/OV-WFS-labelkoppelingen, niet bewezen eigendom/behe
 ## Latere stoep- en mofrevisie op 6 oktober
 
 De eigen bronkandidaat is herzien op BGT-voetpad/erf, met beperkte grafische ruimte bij een krappe stoep en bestaande mofsymbolen op behouden kabeldelen. De opgeleverde revisie behoudt alle 125 aansluitingstoewijzingen en zeven afzekeringen. Negen echte oversteken zijn haaks; de opgeslagen CAD heeft geen gevonden lijn-/zelfkruisingen of boom-/ontoelaatbare erfdoorsnijdingen. 23 gerichte tests slagen. Dit is een revisie van de eigen kandidaat, geen nieuwe onafhankelijke test vanaf nul. Het opnieuw kiezen van alle richtingen met een harde brede erfbuffer gaf eerder onbruikbare/overbelaste kandidaten; die zijn afgekeurd. De voetpadrevisie houdt bestaande mofcontacten en stationsuitloop stabiel.
+
+## Definitieve verduidelijking mofstatus en straatbundel
+
+De laatste gerichte bronrevisie van 6 oktober gebruikt circa 170 m rechte bundel voor drie richtingen, herstelt het AM-contact, verwijdert 11,81 m ongebruikte VM-arm uit de eigen projectweergave en maakt onderscheid tussen bestaande bronmoffen en nieuwe knippen. De eerdere bestaande-moftekenconventie op alle behouden uiteinden is vervallen. De opgeslagen CAD, mofcontacten en labels voldoen; negen echte oversteken zijn haaks, alle 125 aansluitingen en zeven afzekeringen blijven gelijk. 28 gerichte tests slagen. Dit is een revisie van de eigen kandidaat, geen nieuwe blinde casus.
