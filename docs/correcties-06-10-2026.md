@@ -11,3 +11,11 @@
 De bronmaker gebruikt `vo_eindmoffen.py` voor eindmofherkenning/opruiming en `vo_trace_verfijnen.py` voor lange rechte frontages en eerdere mofaanlopen. De gedeelde basisas wordt niet opnieuw gekozen alleen omdat één kabel korter wordt. Iedere wijziging wordt na offset opnieuw tegen vegetatie en kabelkruisingen getoetst. Een correctieverzoek kan de betrokken richtingen via `rules.refinement_scope` aanwijzen; die projectinvoer is geen universele richtingnummerregel.
 
 De bochten buiten de rijbaan mogen geen behouden hoofdkabel raken of kruisen. De oversteekmaker verkleint zo nodig de bochtmarge binnen de stoep; ook een kruising met de eigen behouden kabel is een fout, behalve bij de werkelijke mof. Puntkruisingen worden expliciet getoetst, niet alleen overlaplengtes.
+
+## Voetpad en bestaande moffen
+
+Gebruik meestal de BGT-voetpadstrook als leidraad en controleer alle buitenste kabels. Een uitgebreide perceelanalyse is niet nodig voor deze gewone routecorrectie. BGT-erf/tuin is geen vrije strook. Als de stoep krap is, mag de getekende bundel beperkt over de grens steken, omdat echte kabels dichter bij elkaar liggen dan de tekenoffset. Laat het tracé in/langs de stoep en vermijd duidelijke tuinroutes, bomen en kabelkruisingen.
+
+Bij aftakkingen tussen behouden hoofdkabels en de uiteinden van behouden kabel hoort `BESTAANDE MOF`. Alleen huisaansluittakken worden genegeerd. Nieuwe kabeluiteinden krijgen `NIEUWE MOF`. Nieuwe fysieke knippen op behouden kabels staan afzonderlijk als werk geregistreerd.
+
+Herzie voor een lokale correctie de eigen bronkandidaat met dezelfde aansluitingstoewijzing en echte mofcontacten. Noem zo'n revisie geen nieuwe test vanaf nul. Bij langere gezamenlijke frontages mag bundelherstel een ruimer lijnstuk heropbouwen, mits beschermde mofcontacten, terrein, kabelvrijheid en de haakse oversteken blijven kloppen.
