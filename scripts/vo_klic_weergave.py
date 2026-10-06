@@ -8,6 +8,11 @@ def make_clipped_klic_view(data,previous_parts,out):
  from shapely.geometry import shape,Point,LineString
  from shapely.ops import substring,unary_union
  cfg=data['config'];doc=ezdxf.readfile(cfg['klic_dxf']);msp=doc.modelspace();logs=[];removals=[]
+ # Reapply cumulative cuts to a fresh project copy; a revision must never
+ # resurrect an arm removed in a preceding saved candidate.
+ for row in data.get('klic_display_removals',[])+data.get('additional_display_removals',[]):
+  original=shape(data['existing_chains'][row['code']]);removed=shape(row['geometry']);used=shape(row['protected_used_geometry'])
+  if not any(code==row['code'] and prior.equals(removed) for code,_,prior,_ in removals):removals.append((row['code'],original,removed,used))
  for d in data['directions']:
   if not d.get('feed') or d.get('splice_kind')!='VM':continue
   original=shape(data['existing_chains'][d['primary_code']]);old=next(p for p in previous_parts[d['id']] if p['code']==d['primary_code']);new=next(p for p in d['retained'] if p['code']==d['primary_code']);used=unary_union([shape(p['geometry']) for other in data['directions'] for p in other['retained'] if p['code']==d['primary_code']])
@@ -21,7 +26,10 @@ def make_clipped_klic_view(data,previous_parts,out):
    # Only the verified connection-free arm between the previous own end and
    # the VM is edited; the rest of the cable group remains protected.
    if any(lo+.01<r['chain_position_m']<hi-.01 for other in data['directions'] for r in other['records'] if r['code']==d['primary_code']):raise ValueError('VM-verwijdering raakt een toegewezen aansluiting.')
-   removals.append((d['primary_code'],original,removed,used))
+   if not any(code==d['primary_code'] and removed.equals(prior) for code,_,prior,_ in removals):removals.append((d['primary_code'],original,removed,used))
+ for code,original,removed,used in removals:
+   protected=unary_union([shape(p['geometry']) for other in data['directions'] for p in other['retained'] if p['code']==code])
+   if removed.intersection(protected).length>.001:raise ValueError('Projectknip raakt behouden kabel: '+code)
    for e in list(msp.query('LWPOLYLINE')):
     if e.dxf.layer not in ['E_LV_MAP_CABLE_LS','E_LV_MAP_CABLE_LSOV'] or len(e)<2:continue
     g=LineString(e.get_points('xy'))
@@ -31,12 +39,14 @@ def make_clipped_klic_view(data,previous_parts,out):
     pieces=[substring(g,0,left),substring(g,right,g.length)];pieces=[p for p in pieces if p.geom_type=='LineString' and p.length>.01]
     handle=e.dxf.handle;attrs=e.dxfattribs();attrs.pop('handle',None);attrs.pop('owner',None);msp.delete_entity(e)
     for p in pieces:msp.add_lwpolyline(list(p.coords),dxfattribs=attrs)
-    logs.append({'code':d['primary_code'],'source_handle':handle,'removed_display_m':g.length-sum(p.length for p in pieces),'kind':'LS-hoofdkabel','original_source_modified':False})
+    logs.append({'code':code,'source_handle':handle,'removed_display_m':g.length-sum(p.length for p in pieces),'kind':'LS-hoofdkabel','original_source_modified':False})
    for e in list(msp.query('INSERT CIRCLE')):
     if 'MAP_CABLE_END_JOINT_LS' not in e.dxf.layer:continue
     bb=bbox.extents([e]);p=Point(bb.center.xy)
     if p.distance(removed)<.02 and p.distance(used)>.02:
-     handle=e.dxf.handle;msp.delete_entity(e);logs.append({'code':d['primary_code'],'source_handle':handle,'kind':'Eindmof op verwijderd armdeel','original_source_modified':False})
+     handle=e.dxf.handle;msp.delete_entity(e);logs.append({'code':code,'source_handle':handle,'kind':'Eindmof op verwijderd armdeel','original_source_modified':False})
+ from vo_kabelafwerking import apply_cable_style
+ data['klic_cable_style']=apply_cable_style(doc)
  out=Path(out);out.mkdir(exist_ok=True);file=out/'KLIC LS - ontwerpweergave.dxf';doc.saveas(file);data['klic_display_edits']=logs;data['klic_display_removals']=[{'code':code,'geometry':removed.__geo_interface__,'protected_used_geometry':used.__geo_interface__} for code,original,removed,used in removals];data['config']['klic_display_dxf']=str(file.resolve());return file,removals
 
 def convert_klic_dwg(dxf_path):
