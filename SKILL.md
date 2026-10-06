@@ -26,6 +26,10 @@ Uitgewerkte buren leveren grenzen, bestaande voedingen en stijl. Zonder ingevuld
 
 **Wegoversteken zijn altijd haaks:** recht is niet genoeg. De kabel kruist onder **90° ten opzichte van de lokale wegrichting**, afgeleid uit BGT/topografie. Geen schuine oversteek; knikken blijven buiten de rijbaan. Meerdere kabels gebruiken dezelfde plaats en een gezamenlijke lokale wegas, met 0,20 m offset. Toets rechtheid én hoek na alle verschuivingen, ook bij bestaande kruisingsvrije kandidaten.
 
+**Binnen de stoep blijven:** gebruik meestal de BGT-voetpadstrook als leidraad. Controleer alle richtingen na offset, bochten en vereenvoudiging; een veilige middenlijn kan een buitenste kabel nog in een tuin leggen. Bij gebrek aan ruimte mag de getekende bundel iets over de stoepgrens komen, omdat de echte kabels dichter bij elkaar liggen dan de 0,20 m tekenoffset. Dit is beperkte tekenruimte bij een stoeptracé, geen toestemming voor een route door een tuin. BGT-erf is geen vrije strook. Gras, pleinen en geschikte tegels blijven toegestane alternatieven. Voor deze gewone tracékeuze is geen uitgebreide perceelanalyse nodig.
+
+**Bestaande moffen zichtbaar tekenen:** plaats het lokale blok `BESTAANDE MOF` bij aftakkingen tussen behouden hoofdkabels en bij hun uiteinden. Een reeds aanwezige eindmof krijgt geen nieuw-mofsymbool. Huisaansluittakken tellen hiervoor niet. Bij een nieuwe fysieke knip in een behouden kabel blijft de benodigde eindvoorziening in de werk-/verwijderregistratie staan, ook wanneer het behouden kabeldeel volgens deze tekenconventie een bestaand-mofsymbool krijgt. Nieuwe kabeluiteinden krijgen `NIEUWE MOF`; nieuwe verbindingen met behouden kabel krijgen het bestaand-nieuw-blok.
+
 ## Hulpmiddelen en grenzen
 
 `scripts/ontwerp_uit_bronnen.py` inventariseert bronnen, maakt een kandidaat, tekent en controleert de opgeslagen geometrie. Alleen gedeclareerde CAD/GIS-bronnen zijn invoer; oplossingspaden kunnen geblokkeerd worden. Bron-/scripthashes en gelezen bronnen worden bewaard. `scripts/reken_richtingen.py` rekent ook losse expliciete structuren.
