@@ -72,13 +72,41 @@ def validate_saved(data,sources,router):
   for name,xy in expected:
    matches=[n for h,n in data['drawing']['symbol_types'].items() if n in ['NIEUWE MOF','BESTAANDE MOF'] and doc.entitydb.get(h) is not None and Point(bbox.extents([doc.entitydb[h]]).center.xy).distance(Point(xy))<.05]
    if matches!=[name]:mof_errors.append({'code':work['code'],'xy':xy,'expected':name,'found':matches})
+   if name=='NIEUWE MOF':
+    for handle,n in data['drawing']['symbol_types'].items():
+     e=doc.entitydb.get(handle)
+     if n==name and e is not None and Point(bbox.extents([e]).center.xy).distance(Point(xy))<.05 and e.dxf.layer!=work['layer']:mof_errors.append({'code':work['code'],'reason':'Nieuwe eindmof op verkeerde richtingslaag'})
+    if not any(e.dxf.layer==work['layer'] and e.dxf.text=='EM (was '+work['code'][3:]+')' and Point(e.dxf.insert.xy).distance(Point(xy))<2 for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Eindmoftekst mist juiste richtingslaag'})
  from vo_kabelafwerking import cable_layer
  style_errors=[];new_layers={d['layer'] for d in data['directions']}
- for title,cad in [('ontwerp',doc)]+([('KLIC-projectweergave',ezdxf.readfile(cfg['klic_display_dxf']))] if cfg.get('klic_display_dxf') else []):
+ for title,cad in [('ontwerp',doc)]:
   for e in cad.modelspace().query('LWPOLYLINE'):
    if not (cable_layer(e.dxf.layer) or e.dxf.layer in new_layers):continue
    if abs(e.dxf.const_width-.1)>1e-9:style_errors.append({'file':title,'handle':e.dxf.handle,'reason':'Global width is niet 0.1'})
    if title=='ontwerp' and (e.dxf.layer in new_layers or 'nieuwe kabel' in e.dxf.layer.lower()) and (e.dxf.linetype!='DASHED' or abs(e.dxf.ltscale-.0035)>1e-9):style_errors.append({'file':title,'handle':e.dxf.handle,'reason':'Nieuwe kabel mist DASHED / 0.0035'})
  data['drawing']['cable_style_errors']=style_errors
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ import hashlib
+ from pathlib import Path
+ base=ezdxf.readfile(cfg['base_dxf']);xref_errors=[];original={b.name:b.block.dxf.get('xref_path','') for b in base.blocks if b.block.dxf.flags&4}
+ for b in doc.blocks:
+  if b.block.dxf.flags&4 and b.name in original and b.block.dxf.get('xref_path','')!=original[b.name]:xref_errors.append({'block':b.name,'reason':'Externe verwijzing gewijzigd'})
+ for r in data.get('klic_display_reference',{}).get('original_references',[]):
+  if r['sha256'] and hashlib.sha256(Path(r['path']).read_bytes()).hexdigest()!=r['sha256']:xref_errors.append({'block':r['block'],'reason':'Inhoud externe verwijzing gewijzigd'})
+ data['drawing']['xref_errors']=xref_errors
+ import math
+ end_errors=[]
+ for d in data['directions']:
+  if d['id'] not in cfg['rules'].get('extend_past_last_connection',[x['id'] for x in data['directions'] if not x.get('feed')]):continue
+  g=lines[d['id']];a,b=g.coords[-2],g.coords[-1];length=math.dist(a,b);u=((b[0]-a[0])/length,(b[1]-a[1])/length);clearance=cfg['rules'].get('connection_end_clearance_m',.6)
+  for r in d['records']:
+   if r['code'] not in d['new_codes'] and not r.get('new_connection'):continue
+   beyond=(r['tap'][0]-b[0])*u[0]+(r['tap'][1]-b[1])*u[1]
+   if beyond>-clearance+.001:end_errors.append({'direction':d['id'],'connection':r['id'],'short_of_required_end_m':beyond+clearance})
+ data['drawing']['connection_end_errors']=end_errors
+ offset_errors=[]
+ for row in data.get('shared_offset_rebuild',[]):
+  piece=shape(row['geometry']);expected=lines[row['reference']].offset_curve(row['offset_m'],join_style=2,mitre_limit=10)
+  if piece.difference(expected.buffer(.000001)).length>.00001 or piece.difference(lines[row['direction']].buffer(.000001)).length>.00001:offset_errors.append({'direction':row['direction'],'reference':row['reference'],'reason':'Opgeslagen gezamenlijke lijn wijkt van exacte offset af'})
+ data['drawing']['shared_offset_errors']=offset_errors
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and not xref_errors and not end_errors and not offset_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
