@@ -183,9 +183,10 @@ def draw_source_design(data,out):
   d['geometry_calculation']=geometry_checks(d,lane)
   d['search_limiting']=d['limiting'];d['limiting']=d['geometry_calculation']['selected']['limiting'];d['passes']=d['geometry_calculation']['selected']['passes']
  # Symbol decisions come from final assignments, never from all circles in the area.
+ from vo_annotaties import overzetter_position
  for r in data['connections']:
   if r.get('overzetter'):
-   _,contact=__import__('shapely').ops.nearest_points(Point(r['xy']),display[r['direction']]);dx=contact.x-r['xy'][0];dy=contact.y-r['xy'][1];L=math.hypot(dx,dy) or 1;point=(r['xy'][0]+dx/L*2.6,r['xy'][1]+dy/L*2.6);symbol('OVERZETTER',point,'Aansluiting LS K'+r['direction'][1:].zfill(2))
+   point,_=overzetter_position(r['xy'],display[r['direction']],cfg['rules'].get('overzetter_circle_offset_m',2.6));symbol('OVERZETTER',point,'Aansluiting LS K'+r['direction'][1:].zfill(2))
  for d in ordered:
   layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[];d['retained_end_work']=[]
   if feed:
@@ -256,4 +257,6 @@ def draw_source_design(data,out):
  restore_source_xrefs(doc,data);doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
  data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types;data['drawing']['cable_style']=cable_style
+ from vo_annotaties import apply_annotation_layout
+ apply_annotation_layout(doc,data);doc.saveas(file)
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
