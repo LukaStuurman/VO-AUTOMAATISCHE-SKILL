@@ -12,6 +12,7 @@ def write_corrected_candidate(data,previous,out):
  from vo_mofverbindingen import align_splice_contacts,existing_branch_evidence
  from vo_paden import geometry_checks
  from vo_klic_weergave import make_clipped_klic_view,convert_klic_dwg
+ from vo_kabelafwerking import supplemental_work,draw_supplemental,apply_cable_style
  out=Path(out).resolve();out.mkdir(exist_ok=True);doc=ezdxf.readfile(previous['drawing']['file']);msp=doc.modelspace();cfg=data['config'];templates={k:v.copy() for k,v in style_templates(doc).items()};lines={d['id']:shape(d['display_main']) for d in data['directions']};chains={c:shape(g) for c,g in data['existing_chains'].items()};old_parts={d['id']:copy.deepcopy(d['retained']) for d in previous['directions']}
  data['splice_contact_adjustments']=align_splice_contacts(data['directions'],lines,chains);joints=existing_joint_objects(cfg['klic_dxf']);end_joints=[j for j in joints if j['kind']=='end'];generated=list(previous['drawing']['new_entity_handles']);symbol_types=dict(previous['drawing']['symbol_types'])
  for d in data['directions']:
@@ -56,6 +57,7 @@ def write_corrected_candidate(data,previous,out):
    symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');text('Bestaand',(p[0]+.8,p[1]+.8),'01 - Bestaande kabel');d['existing_branch_mofs'].append({'xy':p,'codes':[first['code'],second['code']],'source_joint':evidence})
   if d['new_codes']:
    p=list(g.coords[-1]);symbol('NIEUWE MOF',p,layer);text('EM',(p[0]+.8,p[1]+.8),layer);d['end_mof_positions'].append(p)
+ supplemental_work(data,joints,doc,previous_parts=old_parts);draw_supplemental(data,symbol,text,line)
  # Preserve circles/assignments; point the overzetter symbols at the revised main.
  overzetters=[h for h,name in symbol_types.items() if name=='OVERZETTER'];records=[r for r in data['connections'] if r['overzetter']]
  if len(overzetters)!=len(records):raise ValueError('Overzetterregister en CAD verschillen.')
@@ -74,6 +76,5 @@ def write_corrected_candidate(data,previous,out):
   for code,original,removed,used in removals:
    if re.fullmatch(r'\s*\d+(?:Al|Cu)?\s*/\s*\(was\s+'+re.escape(code[3:])+r'\)\s*',label) and point.distance(removed)<2 and point.distance(used)>2:
     data['removed_native_labels'].append({'handle':e.dxf.handle,'text':label});msp.delete_entity(e);break
- data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types;data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
+ data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types;data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
  return data
-
