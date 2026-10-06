@@ -7,6 +7,7 @@ LS-VO maken uit oorspronkelijke CAD, KLIC/WFS, BGT/topografie en kadergegevens, 
 - [Bronontwerpgenerator](scripts/ontwerp_uit_bronnen.py)
 - [Lokale CAD-stijl zonder routes/keuzes](assets/cad-stijl.json)
 - [Kalibratie en bewezen bereik](docs/kalibratie-bronontwerp.md)
+- [Correcties uit de beoordeling van 6 oktober](docs/correcties-06-10-2026.md): bestaande eindmoffen, rechte bomenrijcorridors, eerdere oversteken, ongebruikte mofarmen en complete annotatie-opruiming.
 - [Los rekenhulpmiddel](scripts/reken_richtingen.py)
 
 De standaard is genereren vanuit bronnen, een kandidaat opslaan en de gebruikersoplossing pas daarna vergelijken. De generator leest geen doelstationoplossing; broncorrecties en bron-/scriptversies zijn expliciet. Uitgewerkte buren leveren grenzen en stijl; zonder ingevulde buren werkt de lokale stijlset.
