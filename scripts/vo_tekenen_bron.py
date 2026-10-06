@@ -152,6 +152,13 @@ def draw_source_design(data,out):
   if change:data['straight_street_bundles'].append(change)
   for name,g in display.items():display[name],_=perpendicular_crossings(g,lane_road,obstacles,region,name,sites,retained_obstacles(name))
  previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
+ from vo_kabelafwerking import splice_after_crossing,supplemental_work,draw_supplemental,apply_cable_style
+ data['splice_after_crossing_changes']=[]
+ for d in ordered:
+  if d['id'] not in cfg['rules'].get('splice_after_crossing',[]):continue
+  display[d['id']],change=splice_after_crossing(d,display[d['id']],original_chains[d['primary_code']],road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles)
+  if not change:raise ValueError('AM niet veilig direct na haakse oversteek geplaatst: '+d['id'])
+  data['splice_after_crossing_changes'].append(change)
  data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
@@ -194,6 +201,7 @@ def draw_source_design(data,out):
   # Label long street segments, in compact rows separated by direction offset.
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
+ supplemental_work(data,all_source_joints,doc,previous_parts=previous_retained);draw_supplemental(data,symbol,text,line)
  data['obsolete_end_cleanup']=clean_obsolete_end_annotations(doc,ordered,region,original_chains)
  # Place the RT legend by empty-space scoring, not a reference coordinate.
  occupied=unary_union([g.buffer(2) for g in display.values()]+[Point(r['xy']).buffer(2) for r in data['connections']]);cx,cy=station.center.x,station.center.y;bounds=region.bounds;candidates=[]
@@ -226,8 +234,9 @@ def draw_source_design(data,out):
  for (a,g),(b,h) in itertools.combinations(display.items(),2):
   q=g.intersection(h).difference(station_box)
   if not q.is_empty:crossings.append({'a':a,'b':b,'geometry':q.__geo_interface__})
+ cable_style=apply_cable_style(doc,new_layers=[d['layer'] for d in ordered])
  doc.header['$INSUNITS']=6;doc.set_modelspace_vport(height=360,center=region.centroid.coords[0]);audit=doc.audit();out=Path(out);out.mkdir(exist_ok=True);file=out/(cfg['station_id']+' - LS VO uit brongegevens.dxf');doc.saveas(file)
- if any(row.get('old_interval') for row in data['splice_contact_adjustments']):
+ if any(row.get('old_interval') for row in data['splice_contact_adjustments']) or data.get('additional_display_removals') or cfg.get('klic_dxf'):
   from vo_klic_weergave import make_clipped_klic_view,convert_klic_dwg
   view,_=make_clipped_klic_view(data,previous_retained,out);dwg=convert_klic_dwg(view);matches=[]
   for block in doc.blocks:
@@ -235,5 +244,5 @@ def draw_source_design(data,out):
   if len(matches)!=1:raise ValueError('KLIC-projectweergave niet eenduidig gekoppeld.')
   data['klic_display_reference']={'block':matches[0],'dwg':str(dwg),'dxf':str(view),'source_unchanged':True};doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
- data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types
+ data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types;data['drawing']['cable_style']=cable_style
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
