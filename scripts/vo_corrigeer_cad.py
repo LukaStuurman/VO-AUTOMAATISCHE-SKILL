@@ -93,5 +93,9 @@ def write_corrected_candidate(data,previous,out):
  data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]+[r['layer'] for r in data.get('station_tamps',[])]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types
  from vo_annotaties import apply_annotation_layout
  apply_annotation_layout(doc,data)
+ from vo_afzekeringsblok import apply_fuse_legend
+ apply_fuse_legend(doc,data)
+ from vo_tekst_en_draworder import apply_text_layout
+ apply_text_layout(doc,data)
  data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
  return data
