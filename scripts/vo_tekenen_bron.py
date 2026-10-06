@@ -14,6 +14,8 @@ def draw_source_design(data,out):
  from vo_stijl import style_templates
  templates=style_templates(doc)
  generated=[];symbol_types={}
+ from vo_eindmoffen import existing_end_joints,retained_end_status,clean_obsolete_end_annotations
+ original_chains={c:shape(g) for c,g in data['existing_chains'].items()};existing_joints=existing_end_joints(cfg['klic_dxf'])
  # Geometry filters use source vegetation and topo, never the author drawing.
  from vo_terrein import vegetation_class
  from vo_topografie import topography_obstacles
@@ -58,10 +60,28 @@ def draw_source_design(data,out):
   for child in node['children'].values():rebuild(child,result+[child['point']])
  for child in trie['children'].values():rebuild(child,[])
  masters=rebuilt
+ ordering_lengths={name:g.length for name,g in masters.items()}
+ from vo_trace_verfijnen import straight_frontage,earlier_joint_approach
+ roads=active_features('wegdeel');road=unary_union([shape(f['geometry']) for f in roads if f['properties'].get('functie')=='rijbaan lokale weg'])
+ from vo_terrein import vegetation_class
+ surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel')]+[station_box])
+ frontage_surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf']+[station_box])
+ data['trace_refinements']=[]
+ for d in data['directions']:
+  g=masters[d['id']]
+  scopes=cfg['rules'].get('refinement_scope',{})
+  if not d['feed'] and d['id'] in scopes.get('straight_frontage',[d['id']]):
+   g,change=straight_frontage(g,obstacles,frontage_surfaces,road,region,cfg['rules'].get('straight_frontage_clearance_m',1.0))
+  elif d['new_codes'] and d['feed'] and d['id'] in scopes.get('earlier_joint',[d['id']]):
+   guide=shape(next(p['geometry'] for p in d['retained'] if p['code']==d['primary_code']))
+   g,change=earlier_joint_approach(g,d['feed']['xy'],obstacles,surfaces,region,road=road,guide=guide)
+  else:change=None
+  if change:data['trace_refinements'].append(dict(change,direction=d['id']))
+  masters[d['id']]=g
  # Existing source contacts may sit on adjacent old cables in the same street.
  # Canonicalise close, forward-running guides to ONE generated trench axis.
  canonical=[];snap_distance=max(.8,cfg['rules']['lane_pitch_m']*(len(masters)-1)+.2)
- for name,g in sorted(masters.items(),key=lambda item:item[1].length,reverse=True):
+ for name,g in sorted(masters.items(),key=lambda item:ordering_lengths[item[0]],reverse=True):
   for axis in canonical:
    original=list(g.coords);positions=[g.project(Point(p)) for p in original];projected=[];good=[]
    for p,at in zip(original,positions):
@@ -76,7 +96,8 @@ def draw_source_design(data,out):
     else:replacement=[original[i]];i+=1
     for p in replacement:
      if not points or math.dist(points[-1],p)>.001:points.append(p)
-   g=LineString(points)
+   candidate=LineString(points)
+   if candidate.intersection(obstacles).length<=g.intersection(obstacles).length+1e-6:g=candidate
   masters[name]=g;canonical.append(g)
  display={};pitch=cfg['rules']['lane_pitch_m'];ordered=data['directions'];count=len(ordered)
  for rank,d in enumerate(ordered):
@@ -90,11 +111,20 @@ def draw_source_design(data,out):
  from vo_bundel import repair_bundle,straight_road_crossings
  road=unary_union([shape(f['geometry']) for f in active_features('wegdeel') if f['properties'].get('functie')=='rijbaan lokale weg'])
  display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
+ from vo_oversteken import crossing_sites,perpendicular_crossings
+ def retained_obstacles(name):
+  own=next(d for d in ordered if d['id']==name)
+  return unary_union([shape(p['geometry']).difference(Point(own['feed']['xy']).buffer(.2)) if d['id']==name and own['feed'] else shape(p['geometry']) for d in ordered for p in d['retained']])
+ sites=crossing_sites(display,road,pitch);data['crossing_sites']=sites;data['perpendicular_crossing_changes']=[]
+ for name,g in display.items():
+  display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
  retained_lines={f'OLD_{d["id"]}_{i}':shape(p['geometry']) for d in ordered for i,p in enumerate(d['retained'])};fixed=set(retained_lines)
  ignored={frozenset([a,b]) for a,b in itertools.combinations(fixed,2)}|{frozenset([d['id'],name]) for d in ordered for name in fixed if name.startswith('OLD_'+d['id']+'_')}
  joined,bundle_repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored)
  display={name:joined[name] for name in display}
  display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
+ for name,g in display.items():
+  display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
  data['bundle_repairs']=bundle_repairs
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
@@ -106,7 +136,7 @@ def draw_source_design(data,out):
   if r.get('overzetter'):
    _,contact=__import__('shapely').ops.nearest_points(Point(r['xy']),display[r['direction']]);dx=contact.x-r['xy'][0];dy=contact.y-r['xy'][1];L=math.hypot(dx,dy) or 1;point=(r['xy'][0]+dx/L*2.6,r['xy'][1]+dy/L*2.6);symbol('OVERZETTER',point,'Aansluiting LS K'+r['direction'][1:].zfill(2))
  for d in ordered:
-  layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[]
+  layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[]
   if feed:
    p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind='AM' if d['new_codes'] else 'VM';retained_type=next(part['type'] for part in d['retained'] if part['code']==d['primary_code']);text(kind+' 150Al->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
    for part in d['retained']:
@@ -114,6 +144,9 @@ def draw_source_design(data,out):
     for p in [rg.coords[0],rg.coords[-1]]:
      if math.dist(p,feed['xy'])<1.0:continue
      if any(other is not part and shape(other['geometry']).distance(Point(p))<.05 for other in d['retained']):continue
+     status=retained_end_status(p,original_chains[part['code']],existing_joints)
+     if not status['new_required']:
+      d['existing_end_mofs'].append(dict(status,code=part['code'],xy=list(p)));continue
      symbol('NIEUWE MOF',p,layer);text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
     midpoint=rg.interpolate(.5,normalized=True);a,b=rg.coords[0],rg.coords[-1];angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;text(part['type']+' / (was '+part['code'][3:]+')',(midpoint.x+.6,midpoint.y+.6),'01 - Bestaande kabel',.75,angle)
   if d['new_codes']:
@@ -122,6 +155,7 @@ def draw_source_design(data,out):
   # Label long street segments, in compact rows separated by direction offset.
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
+ data['obsolete_end_cleanup']=clean_obsolete_end_annotations(doc,ordered,region,original_chains)
  # Place the RT legend by empty-space scoring, not a reference coordinate.
  occupied=unary_union([g.buffer(2) for g in display.values()]+[Point(r['xy']).buffer(2) for r in data['connections']]);cx,cy=station.center.x,station.center.y;bounds=region.bounds;candidates=[]
  for x in range(math.ceil(bounds[0])+10,math.floor(bounds[2])-10,4):
