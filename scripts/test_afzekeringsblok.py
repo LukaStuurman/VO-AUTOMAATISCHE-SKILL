@@ -22,4 +22,10 @@ class Afzekeringsblok(unittest.TestCase):
   from vo_afzekeringsblok import apply_fuse_legend,validate_fuse_legend
   doc,data,_,_=self.setup_cad();apply_fuse_legend(doc,data);row=data['fuse_legend_layout'];block=doc.blocks.get(row['block']);block.delete_entity(doc.entitydb[row['plus_handles']['2'][0]]);self.assertTrue(any(r.get('slot')==2 for r in validate_fuse_legend(doc,data)))
 
+ def test_all_plus_endpoints_reach_circle_edge_and_short_plus_fails(self):
+  from vo_afzekeringsblok import apply_fuse_legend,validate_fuse_legend
+  doc,data,_,_=self.setup_cad();apply_fuse_legend(doc,data);row=data['fuse_legend_layout'];block=doc.blocks.get(row['block']);circle=next(e for e in block.query('CIRCLE') if e.dxf.layer=='Aansluiting LS K02');line=doc.entitydb[row['plus_handles']['2'][0]]
+  self.assertAlmostEqual(line.dxf.start.distance(circle.dxf.center),circle.dxf.radius);self.assertAlmostEqual(line.dxf.end.distance(circle.dxf.center),circle.dxf.radius)
+  line.dxf.start=circle.dxf.center+(line.dxf.start-circle.dxf.center)*.8;self.assertTrue(any(r.get('slot')==2 and 'cirkelrand' in r['reason'] for r in validate_fuse_legend(doc,data)))
+
 if __name__=='__main__':unittest.main()
