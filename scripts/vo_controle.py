@@ -60,5 +60,25 @@ def validate_saved(data,sources,router):
    labels=[e for e in doc.modelspace().query('TEXT') if e.dxf.text=='Bestaand' and Point(e.dxf.insert.xy).distance(Point(work['xy']))<2]
    if not labels:mof_errors.append({'direction':d['id'],'xy':work['xy'],'reason':'Werkelijk bestaande mof mist Bestaand-tekst'})
  data['drawing']['feed_contact_errors']=feed_errors;data['drawing']['mof_status_errors']=mof_errors
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ for work in data.get('supplemental_mof_work',[]):
+  expected=[('NIEUWE MOF',work.get('new_end_xy',work['xy']))]
+  if work['kind']=='capped_existing_branch':
+   expected.append(('BESTAANDE MOF',work['xy']))
+   if not any(e.dxf.text=='Bestaand' and Point(e.dxf.insert.xy).distance(Point(work['xy']))<4 for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Afgedopte bestaande aftakmof mist Bestaand'})
+   stub=shape(work['stub_geometry']);primary=next(d for d in data['directions'] if d['id']==work['direction'])
+   if not any(shape(p['geometry']).distance(Point(work['xy']))<.1 for p in primary['retained']):mof_errors.append({'code':work['code'],'reason':'Aftakmof mist behouden hoofdkabelcontact'})
+   for name,g in lines.items():
+    if not g.intersection(stub).is_empty:reuse_intersections.append({'new_direction':name,'code':work['code'],'reason':'Nieuwe kabel kruist afgedopte aftak'})
+  for name,xy in expected:
+   matches=[n for h,n in data['drawing']['symbol_types'].items() if n in ['NIEUWE MOF','BESTAANDE MOF'] and doc.entitydb.get(h) is not None and Point(bbox.extents([doc.entitydb[h]]).center.xy).distance(Point(xy))<.05]
+   if matches!=[name]:mof_errors.append({'code':work['code'],'xy':xy,'expected':name,'found':matches})
+ from vo_kabelafwerking import cable_layer
+ style_errors=[];new_layers={d['layer'] for d in data['directions']}
+ for title,cad in [('ontwerp',doc)]+([('KLIC-projectweergave',ezdxf.readfile(cfg['klic_display_dxf']))] if cfg.get('klic_display_dxf') else []):
+  for e in cad.modelspace().query('LWPOLYLINE'):
+   if not (cable_layer(e.dxf.layer) or e.dxf.layer in new_layers):continue
+   if abs(e.dxf.const_width-.1)>1e-9:style_errors.append({'file':title,'handle':e.dxf.handle,'reason':'Global width is niet 0.1'})
+   if title=='ontwerp' and (e.dxf.layer in new_layers or 'nieuwe kabel' in e.dxf.layer.lower()) and (e.dxf.linetype!='DASHED' or abs(e.dxf.ltscale-.0035)>1e-9):style_errors.append({'file':title,'handle':e.dxf.handle,'reason':'Nieuwe kabel mist DASHED / 0.0035'})
+ data['drawing']['cable_style_errors']=style_errors
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
