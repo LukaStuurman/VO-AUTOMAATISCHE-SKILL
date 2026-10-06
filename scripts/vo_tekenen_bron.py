@@ -24,6 +24,10 @@ def draw_source_design(data,out):
   return [f for f in json.loads(Path(cfg['bgt'][name]).read_text(encoding='utf8'))['features'] if not f['properties'].get('eind_registratie') and not f['properties'].get('termination_date')]
  topo=topography_obstacles(cfg,region)
  obstacles=unary_union([shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='woody']+[shape(f['geometry']).buffer(cfg['rules']['tree_body_radius_m']) for f in active_features('vegetatieobject_punt')]+[shape(f['geometry']) for f in active_features('vegetatieobject_vlak')]+[topo['trees'],topo['uncertain_contours']]).difference(station_box)
+ erf=unary_union([shape(f['geometry']) for f in active_features('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')=='erf']).difference(station_box)
+ walk=unary_union([shape(f['geometry']) for f in active_features('wegdeel') if f['properties'].get('functie') in ['voetpad','voetgangersgebied','voetpad op trap','inrit']])
+ erf=erf.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+ obstacles=unary_union([obstacles,erf])
  def symbol(name,p,layer,rotation=None):
   e=templates[name].copy();msp.add_entity(e);e.dxf.layer=layer;e.dxf.color=256
   if rotation is not None:
@@ -60,7 +64,7 @@ def draw_source_design(data,out):
   for child in node['children'].values():rebuild(child,result+[child['point']])
  for child in trie['children'].values():rebuild(child,[])
  masters=rebuilt
- ordering_lengths={name:g.length for name,g in masters.items()}
+ ordering_lengths={d['id']:d.get('layout_priority_length_m',masters[d['id']].length) for d in data['directions']}
  from vo_trace_verfijnen import straight_frontage,earlier_joint_approach
  roads=active_features('wegdeel');road=unary_union([shape(f['geometry']) for f in roads if f['properties'].get('functie')=='rijbaan lokale weg'])
  from vo_terrein import vegetation_class
@@ -120,12 +124,25 @@ def draw_source_design(data,out):
   display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
  retained_lines={f'OLD_{d["id"]}_{i}':shape(p['geometry']) for d in ordered for i,p in enumerate(d['retained'])};fixed=set(retained_lines)
  ignored={frozenset([a,b]) for a,b in itertools.combinations(fixed,2)}|{frozenset([d['id'],name]) for d in ordered for name in fixed if name.startswith('OLD_'+d['id']+'_')}
- joined,bundle_repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored)
+ anchors={d['id']:[d['feed']['xy']] for d in ordered if d['feed']}
+ joined,bundle_repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored,anchors)
  display={name:joined[name] for name in display}
  display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
  for name,g in display.items():
   display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
+ # Road normalisation can change joins outside the carriageway. Resolve any
+ # resulting bundle conflicts and restore the common 90-degree crossing plane.
+ for iteration in range(5):
+  from vo_bundel import crossing_pairs
+  if not crossing_pairs(dict(display,**retained_lines),station_box,ignored):break
+  joined,repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored,anchors)
+  if not repairs:break
+  bundle_repairs+=repairs;display={name:joined[name] for name in display}
+  for name,g in display.items():
+   display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
  data['bundle_repairs']=bundle_repairs
+ from vo_bundel import separate_free_ends
+ display,data['free_end_adjustments']=separate_free_ends(display,ordered,pitch)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
   from vo_paden import geometry_checks
@@ -136,7 +153,7 @@ def draw_source_design(data,out):
   if r.get('overzetter'):
    _,contact=__import__('shapely').ops.nearest_points(Point(r['xy']),display[r['direction']]);dx=contact.x-r['xy'][0];dy=contact.y-r['xy'][1];L=math.hypot(dx,dy) or 1;point=(r['xy'][0]+dx/L*2.6,r['xy'][1]+dy/L*2.6);symbol('OVERZETTER',point,'Aansluiting LS K'+r['direction'][1:].zfill(2))
  for d in ordered:
-  layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[]
+  layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[];d['retained_end_work']=[]
   if feed:
    p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind='AM' if d['new_codes'] else 'VM';retained_type=next(part['type'] for part in d['retained'] if part['code']==d['primary_code']);text(kind+' 150Al->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
    for part in d['retained']:
@@ -145,13 +162,24 @@ def draw_source_design(data,out):
      if math.dist(p,feed['xy'])<1.0:continue
      if any(other is not part and shape(other['geometry']).distance(Point(p))<.05 for other in d['retained']):continue
      status=retained_end_status(p,original_chains[part['code']],existing_joints)
+     d['retained_end_work'].append(dict(status,code=part['code'],xy=list(p),symbol='BESTAANDE MOF'))
+     symbol('BESTAANDE MOF',p,'01 - Bestaande kabel')
      if not status['new_required']:
       d['existing_end_mofs'].append(dict(status,code=part['code'],xy=list(p)));continue
-     symbol('NIEUWE MOF',p,layer);text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
+     text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
     midpoint=rg.interpolate(.5,normalized=True);a,b=rg.coords[0],rg.coords[-1];angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;text(part['type']+' / (was '+part['code'][3:]+')',(midpoint.x+.6,midpoint.y+.6),'01 - Bestaande kabel',.75,angle)
   if d['new_codes']:
    endpoint=g.coords[-1];symbol('NIEUWE MOF',endpoint,layer);text('EM',(endpoint[0]+.8,endpoint[1]+.8),layer,.7);ends.append(list(endpoint))
   d['end_mof_positions']=ends
+  # Existing main/branch joints, not individual house connection taps.
+  d['existing_branch_mofs']=[]
+  for first,second in itertools.combinations(d['retained'],2):
+   if first['code']==second['code']:continue
+   a,b=shape(first['geometry']),shape(second['geometry']);pa,pb=__import__('shapely').ops.nearest_points(a,b)
+   if pa.distance(pb)>.1:continue
+   p=(pa.x,pa.y)
+   if feed and math.dist(p,feed['xy'])<.2:continue
+   symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');d['existing_branch_mofs'].append({'xy':list(p),'codes':[first['code'],second['code']]})
   # Label long street segments, in compact rows separated by direction offset.
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
