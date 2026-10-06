@@ -314,7 +314,9 @@ De standaard is genereren uit oorspronkelijke bronnen volgens [bronworkflow](bro
 
 ## 12. Concrete oplevering en grenzen
 
-**Kabelstijl:** bestaande en nieuwe kabelpolylijnen hebben global width **0,1**. Nieuwe kabels gebruiken **DASHED**, met entity linetype scale **0,0035**. Controleer dit in de opgeslagen CAD en de eigen KLIC-projectweergave. Bronbestanden en niet-kabelobjecten blijven intact.
+**Kabelstijl:** bestaande en nieuwe kabelpolylijnen in de hoofdtekening hebben global width **0,1**. Nieuwe kabels gebruiken **DASHED**, met entity linetype scale **0,0035**. Externe referenties blijven volledig ongewijzigd, inclusief breedte, lijnstijl, geometrie en koppeling aan de oorspronkelijke bron. Maak geen vervangende project-xref. Niet-kabelobjecten blijven intact. Een nieuwe eindmof en EM-tekst gebruiken de laag van de betrokken richting; alleen echte bestaande moffen gebruiken de bestaande laag met Bestaand.
+
+**Aansluitbereik en offsets:** laat een nieuwe hoofdkabel net voorbij de laatste aansluitkabels lopen. Controleer tegen oorspronkelijke aansluitlocaties, niet alleen tegen projecties die aan het uiteinde afklemmen. Verleng zo nodig en verplaats eindmof/tekst; reken opnieuw. Gezamenlijke tracés blijven door alle bochten op 0,20 m offset, opgebouwd vanuit één referentielijn. Kies zo mogelijk één lange rechte lijn aan de huizenzijde van de stoep. Individueel verschoven bochten/oversteken zijn geen geldige vervanging van een gezamenlijke offset.
 
 **Afgedopte bron-aftak en knip bij buren:** een werkelijk bestaande aftakmof op een behouden hoofdtracé blijft getekend met **Bestaand**, ook wanneer de oude aftakkabel niet gebruikt wordt. Behoud een kort aansluitstuk en zet direct daarna een nieuwe eindmof. Verwijder uitsluitend het ongebruikte vervolg na controle van alle andere voedingen. Een knip kan twee achterblijvende kabeluiteinden opleveren; teken ook de nieuwe eindmof aan het gebruikte uiteinde van een aangrenzend trafogebied. Een nieuwe AM ligt bij voorkeur direct na de haakse oversteek, op het echte contact met de oude kabel, wanneer dit alle aansluitingen en geometrievoorwaarden behoudt. Herbereken na verplaatsing.
 
