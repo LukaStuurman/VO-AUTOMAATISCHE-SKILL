@@ -29,7 +29,7 @@ def apply_fuse_legend(doc,data):
   for e in circles:
    number=slot(e.dxf.layer)
    if number not in used:continue
-   cy=y0+(number-1)*pitch;size=.8*e.dxf.radius;attrs={'layer':e.dxf.layer,'color':256}
+   cy=y0+(number-1)*pitch;size=e.dxf.radius;attrs={'layer':e.dxf.layer,'color':256}
    pair=[block.add_line(inverse.transform(Vec3(x-size,cy,0)),inverse.transform(Vec3(x+size,cy,0)),dxfattribs=attrs),block.add_line(inverse.transform(Vec3(x,cy-size,0)),inverse.transform(Vec3(x,cy+size,0)),dxfattribs=attrs)];pluses[str(number)]=[v.dxf.handle for v in pair]
   ext=bbox.extents([ref]);margin=.45;bounds=[ext.extmin.x-margin,ext.extmin.y-margin,ext.extmax.x+margin,ext.extmax.y+margin];x0,y1,x1,y2=bounds
   polygon=[inverse.transform(Vec3(a,b,0)).xy for a,b in [(x0,y1),(x1,y1),(x1,y2),(x0,y2)]];wipeout=block.add_wipeout(polygon,dxfattribs={'layer':'0'})
@@ -55,7 +55,7 @@ def validate_fuse_legend(doc,data):
    else:
     for v in lines:
      a=matrix.transform(v.dxf.start);b=matrix.transform(v.dxf.end)
-     if ((a+b)*.5-p).magnitude>.000001 or abs(a.distance(p)-.8*e.dxf.radius)>.000001 or abs(b.distance(p)-.8*e.dxf.radius)>.000001:errors.append({'slot':number,'reason':'Plusje niet gecentreerd in rondje'})
+     if ((a+b)*.5-p).magnitude>.000001 or abs(a.distance(p)-e.dxf.radius)>.000001 or abs(b.distance(p)-e.dxf.radius)>.000001:errors.append({'slot':number,'reason':'Plusje loopt niet gecentreerd tot de cirkelrand'})
     vectors=[matrix.transform(v.dxf.end)-matrix.transform(v.dxf.start) for v in lines]
     if not (any(abs(v.x)<.000001 for v in vectors) and any(abs(v.y)<.000001 for v in vectors)):errors.append({'slot':number,'reason':'Plusje is niet horizontaal en verticaal'})
   elif lines:errors.append({'slot':number,'reason':'Vrije richting heeft plusje'})
