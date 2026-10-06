@@ -38,7 +38,7 @@ def supplemental_work(data,joints,host_doc,stub_length=.9,previous_parts=None):
    # All original branch loads have been assigned to the replacement cable.
    if any(code==p['code'] for other in data['directions'] for p in other['retained']):raise ValueError('Afgedopte aftak wordt nog door een andere richting gebruikt.')
    if any(r['code']==code and not r['overzetter'] for r in data['connections']):raise ValueError('Afgedopte aftak heeft een achterblijvende aansluiting.')
-   work.append({'kind':'capped_existing_branch','direction':d['id'],'code':code,'xy':evidence['xy'],'source_joint':evidence,'stub_geometry':stub.__geo_interface__,'new_end_xy':list(stub.coords[-1])})
+   work.append({'kind':'capped_existing_branch','direction':d['id'],'layer':d['layer'],'code':code,'xy':evidence['xy'],'source_joint':evidence,'stub_geometry':stub.__geo_interface__,'new_end_xy':list(stub.coords[-1])})
    cut=substring(branch,end,branch.length if root<branch.length/2 else 0)
    if cut.length>.01:trims.append({'code':code,'geometry':cut.__geo_interface__,'protected_used_geometry':stub.__geo_interface__,'reason':'Vervangen aftak na bestaand bronmof afdoppen'})
  # A verified removed VM arm may leave a still-used neighbour cable endpoint.
@@ -57,7 +57,9 @@ def supplemental_work(data,joints,host_doc,stub_length=.9,previous_parts=None):
     if row['code'] not in e.dxf.layer or len(e)<2:continue
     g=LineString(e.get_points('xy'))
     if min(math.dist(xy,g.coords[0]),math.dist(xy,g.coords[-1]))<.05 and g.intersection(removed.buffer(.001)).length<.02:matches.append(e.dxf.handle)
-   if matches and not any(w['kind']=='neighbour_cut_end' and w['code']==row['code'] and math.dist(w['xy'],xy)<.01 for w in work):work.append({'kind':'neighbour_cut_end','code':row['code'],'xy':list(xy),'source_endpoint_handles':matches})
+   if matches and not any(w['kind']=='neighbour_cut_end' and w['code']==row['code'] and math.dist(w['xy'],xy)<.01 for w in work):
+    owner=min((d for d in data['directions'] if d['primary_code']==row['code'] and d.get('splice_kind')=='VM'),key=lambda d:Point(d['feed']['xy']).distance(removed))
+    work.append({'kind':'neighbour_cut_end','direction':owner['id'],'layer':owner['layer'],'code':row['code'],'xy':list(xy),'source_endpoint_handles':matches})
  data['supplemental_mof_work']=work;data['additional_display_removals']=trims
  return work
 
@@ -68,7 +70,30 @@ def draw_supplemental(data,symbol,text,line):
   if w['kind']=='capped_existing_branch':
    line(shape(w['stub_geometry']),layer);symbol('BESTAANDE MOF',p,layer);text('Bestaand',(p[0]-3,p[1]+1),layer)
    p=w['new_end_xy']
-  symbol('NIEUWE MOF',p,layer);text('EM (was '+w['code'][3:]+')',(p[0]+.8,p[1]-.8),layer)
+  symbol('NIEUWE MOF',p,w['layer']);text('EM (was '+w['code'][3:]+')',(p[0]+.8,p[1]-.8),w['layer'])
+
+def restore_source_xrefs(doc,data):
+ """Behoud oorspronkelijke xrefs; wijzig kabelstijl uitsluitend in de host."""
+ import ezdxf,hashlib
+ from pathlib import Path
+ base=ezdxf.readfile(data['config']['base_dxf']);source={b.name:b.block.dxf.get('xref_path','') for b in base.blocks if b.block.dxf.flags&4};restored=[]
+ for block in doc.blocks:
+  if block.block.dxf.flags&4 and block.name in source:
+   block.block.dxf.xref_path=source[block.name];raw=Path(source[block.name]);restored.append({'block':block.name,'path':source[block.name],'sha256':hashlib.sha256(raw.read_bytes()).hexdigest() if raw.is_absolute() and raw.is_file() else None})
+ data['config'].pop('klic_display_dxf',None);data.pop('klic_cable_style',None);data['klic_display_edits']=[];data['klic_display_reference']={'original_references':restored,'source_unchanged':True,'project_copy_used':False}
+ return restored
+
+def extend_past_last_connection(d,line,clearance=.6):
+ """Voorkom dat geklemde projecties aansluitingen voorbij het einde verbergen."""
+ from shapely.geometry import LineString
+ a,b=line.coords[-2],line.coords[-1];length=math.dist(a,b)
+ if length<.01:raise ValueError('Geen betrouwbare richting van kabeluiteinde: '+d['id'])
+ u=((b[0]-a[0])/length,(b[1]-a[1])/length);records=[r for r in d['records'] if r['code'] in d['new_codes'] or r.get('new_connection')]
+ at=[((r['tap'][0]-b[0])*u[0]+(r['tap'][1]-b[1])*u[1],r) for r in records];needed=max([q for q,r in at],default=-clearance)+clearance
+ if needed<=.001:return line,None
+ if needed>30:raise ValueError('Nieuwe hoofdkabel eindigt te ver voor laatste aansluiting; tracé opnieuw ontwerpen: '+d['id'])
+ end=(b[0]+u[0]*needed,b[1]+u[1]*needed);result=LineString(list(line.coords[:-1])+[end])
+ return result,{'direction':d['id'],'old_end':list(b),'new_end':list(end),'extended_m':needed,'clearance_past_last_tap_m':clearance,'last_connection_ids':[r['id'] for q,r in at if abs(q-(needed-clearance))<1]}
 
 def splice_after_crossing(d,main,chain,road,obstacles):
  """Verplaats een AM naar bronkabel vlak na de laatste oversteek vóór de voeding."""
