@@ -36,6 +36,8 @@ Kabelpolylijnen in de **hoofdtekening**, bestaand en nieuw, krijgen **global wid
 
 Een nieuwe hoofdkabel loopt **net voorbij de laatste aansluitkabels** die hij overneemt. Een projectie die op het kabeluiteinde wordt afgeklemd bewijst geen aansluitbereik. Controleer de oorspronkelijke aansluitlocaties voorbij het einde, verleng zo nodig het tracé, verplaats eindmof/tekst en herbereken. Herstel gedeelde bochten vanuit één referentielijn met vaste lanevolgorde en **0,20 m offset**; losse correcties per richting mogen de afstand niet veranderen. Kies bij bomen zo mogelijk een lange rechte corridor aan de huizenzijde van de stoep, zonder tuin of boomstrook te raken.
 
+Plaats een overzetter **achter de ontwerpstroombol, van de kabel af**: vanaf het kabelcontact komt eerst de bol en daarna het overzetterblok. De bol blijft op zijn bronlocatie. Zet de richtinginformatie (totaal ampère en rekenlengte) naast de **eerste gevoede aansluiting langs de voedingsroute vanaf het station**. Tel bij hergebruik de aanloop naar de mof en de behouden hoofd-/aftakstukken mee om die eerste aansluiting te bepalen; de dichtstbijzijnde bol in vogelvlucht of het eerste record is niet automatisch de eerste aansluiting. Houd teksten vrij van bollen, overzetters, kabels en andere annotaties. `vo_annotaties.py` verzorgt en controleert deze plaatsing.
+
 ## Hulpmiddelen en grenzen
 
 `scripts/ontwerp_uit_bronnen.py` inventariseert bronnen, maakt een kandidaat, tekent en controleert de opgeslagen geometrie. Alleen gedeclareerde CAD/GIS-bronnen zijn invoer; oplossingspaden kunnen geblokkeerd worden. Bron-/scripthashes en gelezen bronnen worden bewaard. `scripts/reken_richtingen.py` rekent ook losse expliciete structuren.
