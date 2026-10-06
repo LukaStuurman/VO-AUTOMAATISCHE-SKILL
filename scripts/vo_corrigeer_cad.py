@@ -34,14 +34,15 @@ def write_corrected_candidate(data,previous,out):
   if e is None:continue
   mof=e.dxftype()=='INSERT' and symbol_types.get(handle) in ['NIEUWE MOF','BESTAANDE MOF','MOF bestaand-nieuw']
   label=e.dxftype()=='TEXT' and (re.match(r'^(?:AM|VM|EM)(?:\s|$)',e.dxf.text) or e.dxf.text=='Bestaand' or (e.dxf.layer=='01 - Bestaande kabel' and '(was ' in e.dxf.text))
-  if mof or label or (e.dxftype()=='LWPOLYLINE' and e.dxf.layer=='01 - Bestaande kabel'):
+  old_tamp=e.dxftype()=='LWPOLYLINE' and any(e.dxf.handle==r.get('polyline_handle') for r in previous.get('station_tamps',[]))
+  if mof or label or old_tamp or (e.dxftype()=='LWPOLYLINE' and e.dxf.layer=='01 - Bestaande kabel'):
    msp.delete_entity(e);generated.remove(handle);symbol_types.pop(handle,None)
  def symbol(name,p,layer):
   e=templates[name].copy();msp.add_entity(e);e.dxf.layer=layer;e.dxf.color=256;center=bbox.extents([e]).center;e.translate(p[0]-center.x,p[1]-center.y,0);generated.append(e.dxf.handle);symbol_types[e.dxf.handle]=name;return e
  def text(label,p,layer,angle=0):
   e=msp.add_text(label,dxfattribs={'layer':layer,'insert':p,'height':.7,'style':'ARIAL','rotation':angle,'color':256});generated.append(e.dxf.handle)
  def line(g,layer):
-  e=msp.add_lwpolyline(list(g.coords),dxfattribs={'layer':layer,'color':256});generated.append(e.dxf.handle)
+  e=msp.add_lwpolyline(list(g.coords),dxfattribs={'layer':layer,'color':256});generated.append(e.dxf.handle);return e
  for d in data['directions']:
   g=lines[d['id']];feed=d.get('feed');layer=d['layer'];d['end_mof_positions']=[];d['existing_end_mofs']=[];d['retained_end_work']=[];d['existing_branch_mofs']=[]
   if feed:
@@ -64,6 +65,8 @@ def write_corrected_candidate(data,previous,out):
   if d['new_codes']:
    p=list(g.coords[-1]);symbol('NIEUWE MOF',p,layer);text('EM',(p[0]+.8,p[1]+.8),layer);d['end_mof_positions'].append(p)
  supplemental_work(data,joints,doc,previous_parts=old_parts);draw_supplemental(data,symbol,text,line)
+ from vo_stationsuitloop import draw_tamps
+ draw_tamps(data,doc,symbol,text,line)
  # Preserve circles/assignments; place symbols behind the balls, away from cable.
  from vo_annotaties import overzetter_position
  overzetters=[h for h,name in symbol_types.items() if name=='OVERZETTER'];records=[r for r in data['connections'] if r['overzetter']]
@@ -79,7 +82,15 @@ def write_corrected_candidate(data,previous,out):
   for code,original,removed,used in removals:
    if re.fullmatch(r'\s*\d+(?:Al|Cu)?\s*/\s*\(was\s+'+re.escape(code[3:])+r'\)\s*',label) and point.distance(removed)<2 and point.distance(used)>2:
     data['removed_native_labels'].append({'handle':e.dxf.handle,'text':label});msp.delete_entity(e);break
- data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types
+ for handle,name in symbol_types.items():
+  if name!='RT 1-12':continue
+  for attribute in doc.entitydb[handle].attribs:
+   match=re.search(r'RT_(\d+)',attribute.dxf.tag)
+   if not match:continue
+   number=int(match.group(1));direction=next((d for d in data['directions'] if int(d['id'][1:])==number),None)
+   if direction:attribute.dxf.text=f'RT {number:02}: {direction["limiting"]["max_fuse_A"]}A / / '+direction.get('new_cable_label','150Al')
+   elif str(number) in cfg['special_slots']:attribute.dxf.text=f'RT {number:02}: '+cfg['special_slots'][str(number)]+' / / 150Al'
+ data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]+[r['layer'] for r in data.get('station_tamps',[])]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types
  from vo_annotaties import apply_annotation_layout
  apply_annotation_layout(doc,data)
  data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
