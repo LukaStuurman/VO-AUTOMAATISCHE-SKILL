@@ -239,9 +239,13 @@ def design(s,router,cfg):
   return not retained or new/(new+retained)>.75
  new_bank=sorted([d for d in directions if mostly_new(d) and not d['retained']],key=cmp_to_key(before))+sorted([d for d in directions if mostly_new(d) and d['retained']],key=cmp_to_key(before))
  reuse_bank=sorted([d for d in directions if not mostly_new(d) and d['new_codes']],key=cmp_to_key(before))+sorted([d for d in directions if not mostly_new(d) and not d['new_codes']],key=lambda d:d['feed']['path'].length,reverse=True)
- directions=new_bank+reuse_bank;slots=cfg['direction_slots'];n=len(directions)
+ from vo_stationsuitloop import allocation_order
+ directions=new_bank+reuse_bank;slots=allocation_order(cfg);cfg['direction_slots']=slots;n=len(directions)
  if n>len(slots):raise ValueError('Te weinig vrije richtingen.')
- left=len(new_bank);chosen=slots[:left]+slots[len(slots)-(n-left):] if rules.get('layout_middle_spares') else slots[:n]
+ # Select occupied positions outside-in, then keep spatial route order on
+ # those physical number positions. Using the priority list as lane order
+ # would permute banks and introduce avoidable cable crossings.
+ chosen=sorted(slots[:n])
  for d,slot in zip(directions,chosen):
   d['id']=f'R{slot}';d['layer']=f'Aansluiting LS K{slot:02}';d['new_cable_label']='150Al+' if any(p.get('combo') for p in d['retained']) else '150Al'
   for r in d['records']:r['direction']=d['id'];r['overzetter']=r['code'] in d['new_codes'] or r.get('new_connection',False)
