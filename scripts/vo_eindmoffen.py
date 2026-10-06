@@ -1,15 +1,19 @@
 """Bestaande eindmoffen behouden en vervallen ontwerpannotaties samen opruimen."""
 import re,math
 
-def existing_end_joints(path):
+def existing_joint_objects(path):
  import ezdxf
  from ezdxf import bbox
  result=[]
  for e in ezdxf.readfile(path).modelspace().query('INSERT CIRCLE'):
   layer=e.dxf.layer.upper()
-  if 'MAP_CABLE_END_JOINT_LS' not in layer:continue
-  bb=bbox.extents([e]);result.append({'handle':e.dxf.handle,'xy':[bb.center.x,bb.center.y],'layer':e.dxf.layer})
+  kind='end' if 'MAP_CABLE_END_JOINT_LS' in layer else 'branch' if 'MAP_CABLE_JOINT_LS' in layer else None
+  if kind is None:continue
+  bb=bbox.extents([e]);result.append({'handle':e.dxf.handle,'xy':[bb.center.x,bb.center.y],'layer':e.dxf.layer,'kind':kind})
  return result
+
+def existing_end_joints(path):
+ return [j for j in existing_joint_objects(path) if j['kind']=='end']
 
 def retained_end_status(point,original,joints,tolerance=.10):
  from shapely.geometry import Point
