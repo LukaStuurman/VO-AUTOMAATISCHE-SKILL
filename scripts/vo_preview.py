@@ -67,6 +67,6 @@ def preview(data,out):
    for e in doc.modelspace():walk(e)
    ax.add_collection(LineCollection(lines,colors=colors,linewidths=widths,zorder=1 if source=='topo' else 2 if source=='klic' else 3))
    for z,(fl,fc,fw) in front.items():ax.add_collection(LineCollection(fl,colors=fc,linewidths=fw,zorder=z))
-   for p,t,c,size,rotation,foreground in texts:ax.text(p[0],p[1],t,color=c,fontsize=size,fontfamily='Arial',rotation=rotation if rotation<90 or rotation>270 else rotation-180,rotation_mode='anchor',va='baseline',clip_on=True,zorder=7 if foreground==6 else 4)
+   for p,t,c,size,rotation,foreground in texts:ax.text(p[0],p[1],t,color=c,fontsize=size,fontfamily='Arial',rotation=rotation if rotation<90 or rotation>270 else rotation-180,rotation_mode='anchor',va='baseline',clip_on=True,zorder=7)
   draw(topo,'topo');draw(klic,'klic');draw(main,'main');ax.set_title(cfg['station_id']+' | '+name+' | ontwerp uit brongegevens',fontsize=12);fig.tight_layout();fig.savefig(out/(name+'.png'));plt.close(fig)
  return [str(out/(name+'.png')) for name in bounds]
