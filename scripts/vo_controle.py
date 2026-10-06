@@ -47,6 +47,7 @@ def validate_saved(data,sources,router):
  data['drawing']['erf_intersections']=private_hits
  feed_errors=[];mof_errors=[]
  from ezdxf import bbox
+ from vo_tekst_en_draworder import mof_label_matches
  for d in data['directions']:
   if d.get('feed'):
    p=Point(d['feed']['xy']);primary=next(part for part in d['retained'] if part['code']==d['primary_code']);old=shape(primary['geometry'])
@@ -57,14 +58,14 @@ def validate_saved(data,sources,router):
    expected='NIEUWE MOF' if work['new_required'] else 'BESTAANDE MOF'
    if matches!=[expected]:mof_errors.append({'direction':d['id'],'xy':work['xy'],'expected':expected,'found':matches})
   for work in d.get('existing_end_mofs',[])+d.get('existing_branch_mofs',[]):
-   labels=[e for e in doc.modelspace().query('TEXT') if e.dxf.text=='Bestaand' and Point(e.dxf.insert.xy).distance(Point(work['xy']))<2]
+   labels=[e for e in doc.modelspace().query('TEXT') if e.dxf.text=='Bestaand' and mof_label_matches(doc,data,e,work['xy'])]
    if not labels:mof_errors.append({'direction':d['id'],'xy':work['xy'],'reason':'Werkelijk bestaande mof mist Bestaand-tekst'})
  data['drawing']['feed_contact_errors']=feed_errors;data['drawing']['mof_status_errors']=mof_errors
  for work in data.get('supplemental_mof_work',[]):
   expected=[('NIEUWE MOF',work.get('new_end_xy',work['xy']))]
   if work['kind']=='capped_existing_branch':
    expected.append(('BESTAANDE MOF',work['xy']))
-   if not any(e.dxf.text=='Bestaand' and Point(e.dxf.insert.xy).distance(Point(work['xy']))<4 for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Afgedopte bestaande aftakmof mist Bestaand'})
+   if not any(e.dxf.text=='Bestaand' and mof_label_matches(doc,data,e,work['xy'],4) for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Afgedopte bestaande aftakmof mist Bestaand'})
    stub=shape(work['stub_geometry']);primary=next(d for d in data['directions'] if d['id']==work['direction'])
    if not any(shape(p['geometry']).distance(Point(work['xy']))<.1 for p in primary['retained']):mof_errors.append({'code':work['code'],'reason':'Aftakmof mist behouden hoofdkabelcontact'})
    for name,g in lines.items():
@@ -76,7 +77,7 @@ def validate_saved(data,sources,router):
     for handle,n in data['drawing']['symbol_types'].items():
      e=doc.entitydb.get(handle)
      if n==name and e is not None and Point(bbox.extents([e]).center.xy).distance(Point(xy))<.05 and e.dxf.layer!=work['layer']:mof_errors.append({'code':work['code'],'reason':'Nieuwe eindmof op verkeerde richtingslaag'})
-    if not any(e.dxf.layer==work['layer'] and e.dxf.text=='EM (was '+work['code'][3:]+')' and Point(e.dxf.insert.xy).distance(Point(xy))<2 for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Eindmoftekst mist juiste richtingslaag'})
+    if not any(e.dxf.layer==work['layer'] and e.dxf.text=='EM (was '+work['code'][3:]+')' and mof_label_matches(doc,data,e,xy) for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Eindmoftekst mist juiste richtingslaag'})
  from vo_kabelafwerking import cable_layer
  style_errors=[];new_layers={d['layer'] for d in data['directions']}|{r['layer'] for r in data.get('station_tamps',[])}
  for title,cad in [('ontwerp',doc)]:
@@ -110,6 +111,10 @@ def validate_saved(data,sources,router):
  data['drawing']['shared_offset_errors']=offset_errors
  from vo_annotaties import validate_annotation_layout
  annotation_errors=validate_annotation_layout(doc,data);data['drawing']['annotation_errors']=annotation_errors
+ from vo_tekst_en_draworder import validate_text_layout
+ text_errors=validate_text_layout(doc,data);data['drawing']['text_layout_errors']=text_errors
+ from vo_afzekeringsblok import validate_fuse_legend
+ legend_errors=validate_fuse_legend(doc,data);data['drawing']['fuse_legend_errors']=legend_errors
  from vo_stationsuitloop import validate_station_exit
  station_errors=validate_station_exit(doc,data);data['drawing']['station_exit_errors']=station_errors
  for row in data.get('station_tamps',[]):
@@ -123,5 +128,5 @@ def validate_saved(data,sources,router):
   crossing_groups.append({'site':site['id'],'directions':[n for _,n in positions],'adjacent_distances_m':gaps,'width_m':positions[-1][0]-positions[0][0] if positions else 0})
   if any(abs(gap-cfg['rules']['lane_pitch_m'])>.01 for gap in gaps):crossing_group_errors.append({'site':site['id'],'reason':'Wegoversteek is niet één compacte bundel met 0.20 m afstand'})
  data['drawing']['crossing_group_errors']=crossing_group_errors;data['drawing']['crossing_groups']=crossing_groups
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and not xref_errors and not end_errors and not offset_errors and not annotation_errors and not station_errors and not crossing_group_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and not xref_errors and not end_errors and not offset_errors and not annotation_errors and not text_errors and not legend_errors and not station_errors and not crossing_group_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
