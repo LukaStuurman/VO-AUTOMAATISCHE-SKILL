@@ -13,10 +13,12 @@ def validate_saved(data,sources,router):
   for p in parts:
    if p.geom_type!='LineString' or p.length<1:continue
    chord=LineString([p.coords[0],p.coords[-1]]);roads.append({'direction':d['id'],'geometry':p.__geo_interface__,'length_m':p.length,'straightness_deviation_m':p.hausdorff_distance(chord),'straight':p.hausdorff_distance(chord)<.05})
+   from vo_oversteken import crossing_angle
+   site=min(data['crossing_sites'],key=lambda s:Point(s['xy']).distance(p.interpolate(.5,normalized=True)));angle=crossing_angle(p,router.road,site['road_axis']);roads[-1].update(site=site['id'],angle_to_road_deg=angle,perpendicular=angle>=89.999)
   for other in data['directions']:
-   if other['id']==d['id']:continue
    for part in other['retained']:
     intersection=g.intersection(shape(part['geometry'])).difference(router.station)
+    if other['id']==d['id'] and d['feed']:intersection=intersection.difference(Point(d['feed']['xy']).buffer(.2))
     if not intersection.is_empty:reuse_intersections.append({'new_direction':d['id'],'retained_direction':other['id'],'code':part['code'],'geometry':intersection.__geo_interface__})
  removal_errors=[]
  for row in data.get('removal_ledger',[]):
@@ -36,5 +38,6 @@ def validate_saved(data,sources,router):
  symbols=Counter(name for handle,name in data['drawing']['symbol_types'].items() if doc.entitydb.get(handle) is not None and doc.entitydb[handle].dxftype()=='INSERT')
  symbols_ok=symbols['OVERZETTER']==sum(r['overzetter'] for r in data['connections'])
  data['drawing']['saved_symbol_counts']=dict(symbols)
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not reuse_intersections and all(r['straight'] for r in roads) and not removal_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ data['drawing']['nonperpendicular_crossings']=[r for r in roads if not r['perpendicular']]
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
