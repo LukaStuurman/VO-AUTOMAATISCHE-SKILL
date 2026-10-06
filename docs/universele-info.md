@@ -314,6 +314,8 @@ De standaard is genereren uit oorspronkelijke bronnen volgens [bronworkflow](bro
 
 ## 12. Concrete oplevering en grenzen
 
+**Overzetters en richtinginformatie:** plaats het overzetterblok vanaf de kabel gezien aan de andere kant van de ontwerpstroombol, zodat de volgorde kabel → bol → overzetter is. Houd de bol op zijn bronlocatie. Het ampèretotaal en de rekenlengte staan naast de eerste gevoede aansluiting van de richting, bepaald langs de elektrische route vanaf het station. Bij bestaande kabels telt de nieuwe aanloop naar de mof plus het behouden hoofd-/aftakpad mee. Gebruik de juiste richtinglaag en kies naast die eerste aansluiting leesruimte zonder overlap met symbolen of tekst.
+
 **Kabelstijl:** bestaande en nieuwe kabelpolylijnen in de hoofdtekening hebben global width **0,1**. Nieuwe kabels gebruiken **DASHED**, met entity linetype scale **0,0035**. Externe referenties blijven volledig ongewijzigd, inclusief breedte, lijnstijl, geometrie en koppeling aan de oorspronkelijke bron. Maak geen vervangende project-xref. Niet-kabelobjecten blijven intact. Een nieuwe eindmof en EM-tekst gebruiken de laag van de betrokken richting; alleen echte bestaande moffen gebruiken de bestaande laag met Bestaand.
 
 **Aansluitbereik en offsets:** laat een nieuwe hoofdkabel net voorbij de laatste aansluitkabels lopen. Controleer tegen oorspronkelijke aansluitlocaties, niet alleen tegen projecties die aan het uiteinde afklemmen. Verleng zo nodig en verplaats eindmof/tekst; reken opnieuw. Gezamenlijke tracés blijven door alle bochten op 0,20 m offset, opgebouwd vanuit één referentielijn. Kies zo mogelijk één lange rechte lijn aan de huizenzijde van de stoep. Individueel verschoven bochten/oversteken zijn geen geldige vervanging van een gezamenlijke offset.
