@@ -12,6 +12,8 @@ Een JSON bevat `station_id`, `kader`, `kva`, `base_dxf`, `klic_dxf`, `topo_dxf`,
 
 Routekosten, raster, profielcriteria en vereenvoudiging zijn expliciete zoekafwegingen. Offset is 0.20 m. Boomlichaam/routingmarge zijn numerieke instellingen, geen verzonnen wettelijke wortelafstand. Een gezamenlijke route wordt eenmaal als graafwerk gewaardeerd. Selecteer op capaciteit, gezamenlijke sleuf en gecontroleerde geometrie; wijzig geen kosten om verborgen voorbeeldpunten te treffen.
 
+Bij een correctie op een bestaand ontwerp kan `rules.refinement_scope` de door de gebruiker aangewezen richtingen voor `straight_frontage` en `earlier_joint` bevatten. De algemene corridorregel zoekt voldoende ruimte en rechte lijnstukken, zonder onnodig naar erf te verschuiven. `straight_frontage_clearance_m` is een numerieke ontwerpmarge. Zie [eindmoffen, bomenrijen en doorgaande mofaanloop](correcties-06-10-2026.md). Een ongewijzigde bestaande eindmof wordt herkend uit oorspronkelijke kabelgeometrie én KLIC; vervallen ontwerp-mof/tekst/conceptlijn worden als samenhangende wijziging opgeruimd.
+
 Benodigd: Python met ezdxf, shapely, numpy, scipy en matplotlib.
 
 ```text
