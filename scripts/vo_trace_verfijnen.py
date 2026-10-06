@@ -1,7 +1,7 @@
 """Kies een ruim recht straattracé en een doorgaande aanloop naar een mof."""
 import math
 
-def straight_frontage(line,obstacles,surfaces,road,region,margin=1.0):
+def straight_frontage(line,obstacles,surfaces,road,region,margin=1.0,house_points=(),other_lines=()):
  from shapely.geometry import LineString
  from shapely.ops import substring
  obstacles=obstacles.intersection(line.envelope.buffer(7));expanded=obstacles.buffer(margin);body=obstacles.buffer(.35);allowed=surfaces.buffer(.25);area=region.buffer(.2)
@@ -14,7 +14,7 @@ def straight_frontage(line,obstacles,surfaces,road,region,margin=1.0):
    if old.hausdorff_distance(chord)>4:continue
    options.append((-L,i,j,old,a,b))
  accepted_pairs=0
- for neg_length,i,j,old,a,b in sorted(options)[:40]:
+ for neg_length,i,j,old,a,b in sorted(options)[:160]:
    L=-neg_length;old_off=old.difference(allowed).length;old_road=old.intersection(road).length;normal=(-(b[1]-a[1])/L,(b[0]-a[0])/L);pair_accepted=False
    for offset in [0]+[s*m*.5 for m in range(1,9) for s in [-1,1]]:
     start=(a[0]+normal[0]*offset,a[1]+normal[1]*offset);end=(b[0]+normal[0]*offset,b[1]+normal[1]*offset)
@@ -23,13 +23,14 @@ def straight_frontage(line,obstacles,surfaces,road,region,margin=1.0):
     candidate=LineString(prefix+[start,end]+suffix)
     changed=LineString([a,start,end]+([points[j+1]] if j<len(points)-1 else []))
     if not candidate.is_simple or middle.intersects(expanded) or changed.intersects(body):continue
+    if any(not candidate.intersection(g).difference(line.intersection(g).buffer(.01)).is_empty for g in other_lines):continue
     if not area.covers(changed) or changed.difference(allowed).length>old_off+.3:continue
     if changed.intersection(road).length>old_road+.25:continue
     # Prefer sufficient room and few bends; do not keep pushing a cable out of
     # the public pavement merely to maximise an arbitrary clearance score.
-    clearance=min(margin+.5,middle.distance(obstacles));score=L+clearance*8-(abs(offset)*.3)
+    clearance=min(margin+.5,middle.distance(obstacles));house_distance=sum(middle.distance(p) for p in house_points)/len(house_points) if house_points else 0;score=L+clearance*8-(abs(offset)*.3)-house_distance*3
     pair_accepted=True
-    if best is None or score>best[0]:best=(score,candidate,{'old_length_m':old.length,'straight_length_m':middle.length,'offset_m':offset,'vegetation_clearance_m':middle.distance(obstacles),'old_vertices':j-i+1,'new_vertices':2,'start':list(start),'end':list(end)})
+    if best is None or score>best[0]:best=(score,candidate,{'old_length_m':old.length,'straight_length_m':middle.length,'offset_m':offset,'vegetation_clearance_m':middle.distance(obstacles),'mean_distance_to_houses_m':house_distance,'old_vertices':j-i+1,'new_vertices':2,'start':list(start),'end':list(end)})
    accepted_pairs+=pair_accepted
    if accepted_pairs>=4:break
  if best is None:return line,None
