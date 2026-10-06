@@ -14,13 +14,17 @@ class SurfaceRouter:
   green=fs('begroeidterreindeel');self.woody=unary_union([shape(f['geometry']) for f in green if vegetation_class(f['properties'])=='woody']+[shape(f['geometry']) for f in fs('vegetatieobject_vlak')]);self.unknown_green=unary_union([shape(f['geometry']) for f in green if vegetation_class(f['properties'])=='green_unknown']);self.trees=unary_union([shape(f['geometry']) for f in fs('vegetatieobject_punt')]);self.buildings=unary_union([shape(f['geometry']) for f in fs('pand')]);self.station=box(*sources['station_bbox'])
   from vo_topografie import topography_obstacles
   self.topo=topography_obstacles(config,sources['region']);self.topo_obstacles=unary_union([self.topo['trees'],self.topo['uncertain_contours']])
+  self.erf=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')=='erf']).difference(self.station)
   clearance=self.rules['route_clearance_m'];self.physical_obstacles=unary_union([self.woody,self.trees.buffer(self.rules['tree_body_radius_m']),self.buildings,self.topo_obstacles]).difference(self.station);self.blocked=unary_union([self.woody.buffer(clearance),self.trees.buffer(self.rules['tree_body_radius_m']+clearance),self.buildings.buffer(clearance),self.topo_obstacles.buffer(clearance)]).difference(self.station)
+  self.natural_obstacles=self.physical_obstacles
+  erf_margin=self.rules.get('bundle_erf_margin_m',.1)
+  self.physical_obstacles=unary_union([self.physical_obstacles,self.erf]);self.blocked=unary_union([self.blocked,self.erf.buffer(erf_margin)])
   area=sources['region'].buffer(7);xmin,ymin,xmax,ymax=area.bounds;self.x0=math.floor(xmin/self.step)*self.step;self.y0=math.floor(ymin/self.step)*self.step
   self.xs=self.x0+np.arange(math.ceil((xmax-self.x0)/self.step)+1)*self.step;self.ys=self.y0+np.arange(math.ceil((ymax-self.y0)/self.step)+1)*self.step;self.X,self.Y=np.meshgrid(self.xs,self.ys);self.height,self.width=self.X.shape
   weights=np.full(self.X.shape,20.0)
   grass=unary_union([shape(f['geometry']) for f in green if vegetation_class(f['properties'])=='open_green'])
-  paving=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel')])
-  self.allowed_surface=unary_union([self.walk,self.road,self.parking,grass,paving,self.station])
+  paving=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf'])
+  self.allowed_surface=unary_union([self.walk,self.road,self.parking,grass,paving,self.station]).difference(self.erf)
   weights[contains_xy(grass,self.X,self.Y)]=self.rules['grass_cost'];weights[contains_xy(self.unknown_green,self.X,self.Y)]=10;weights[contains_xy(paving,self.X,self.Y)]=3
   weights[contains_xy(self.parking,self.X,self.Y)]=3;weights[contains_xy(self.road,self.X,self.Y)]=self.rules['road_cost'];weights[contains_xy(self.walk.buffer(.05),self.X,self.Y)]=self.rules['pavement_cost']
   # Prefer the centre of a pavement strip so the parallel bundle has room.
