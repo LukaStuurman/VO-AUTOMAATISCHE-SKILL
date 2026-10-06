@@ -49,3 +49,8 @@ Ook getest: dezelfde oorspronkelijke bron met 747 buurontwerp-entiteiten verwijd
 Stationaantal, richtingnummers, categoriecorrectie, trafocapaciteit en speciale RT-functies in deze tabel zijn projectfeiten. De volgende locatie krijgt eigen bronnen en uitrusting. De automatische maker ondersteunt de vier gevalideerde kabeltypes en eenvoudige boomstructuren; complexe lussen, wisselende materiaaltypen binnen één code of meerdere noodzakelijke splitsingen vragen uitbreiding.
 
 Nog open: twee afwijkende LS/OV-WFS-labelkoppelingen, niet bewezen eigendom/beheer van betrokken percelen, echte wortelzones, gevolgen voor oorspronkelijke voedingen en actieve OV op oude combi. Drie oorspronkelijke xrefs ontbreken. De beschikbare KLIC/topo zijn gebruikt, maar het ontwerp wordt hierdoor niet als uitvoeringsgereed verklaard. Bron-CAD, ingevulde werkmap en volledige aansluitregisters blijven lokaal; de repository bevat generieke regels, code, stijl en deze samenvatting.
+
+
+## Latere stoep- en mofrevisie op 6 oktober
+
+De eigen bronkandidaat is herzien op BGT-voetpad/erf, met beperkte grafische ruimte bij een krappe stoep en bestaande mofsymbolen op behouden kabeldelen. De opgeleverde revisie behoudt alle 125 aansluitingstoewijzingen en zeven afzekeringen. Negen echte oversteken zijn haaks; de opgeslagen CAD heeft geen gevonden lijn-/zelfkruisingen of boom-/ontoelaatbare erfdoorsnijdingen. 23 gerichte tests slagen. Dit is een revisie van de eigen kandidaat, geen nieuwe onafhankelijke test vanaf nul. Het opnieuw kiezen van alle richtingen met een harde brede erfbuffer gaf eerder onbruikbare/overbelaste kandidaten; die zijn afgekeurd. De voetpadrevisie houdt bestaande mofcontacten en stationsuitloop stabiel.
