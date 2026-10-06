@@ -2,7 +2,7 @@
 import math
 
 class SurfaceRouter:
- def __init__(self,sources,config,read):
+ def __init__(self,sources,config,read,build_grid=True):
   import numpy as np
   from shapely.geometry import shape,box,Point
   from shapely.ops import unary_union
@@ -19,12 +19,11 @@ class SurfaceRouter:
   self.natural_obstacles=self.physical_obstacles
   erf_margin=self.rules.get('bundle_erf_margin_m',.1)
   self.physical_obstacles=unary_union([self.physical_obstacles,self.erf]);self.blocked=unary_union([self.blocked,self.erf.buffer(erf_margin)])
+  grass=unary_union([shape(f['geometry']) for f in green if vegetation_class(f['properties'])=='open_green']);paving=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf']);self.allowed_surface=unary_union([self.walk,self.road,self.parking,grass,paving,self.station]).difference(self.erf)
+  if not build_grid:return
   area=sources['region'].buffer(7);xmin,ymin,xmax,ymax=area.bounds;self.x0=math.floor(xmin/self.step)*self.step;self.y0=math.floor(ymin/self.step)*self.step
   self.xs=self.x0+np.arange(math.ceil((xmax-self.x0)/self.step)+1)*self.step;self.ys=self.y0+np.arange(math.ceil((ymax-self.y0)/self.step)+1)*self.step;self.X,self.Y=np.meshgrid(self.xs,self.ys);self.height,self.width=self.X.shape
   weights=np.full(self.X.shape,20.0)
-  grass=unary_union([shape(f['geometry']) for f in green if vegetation_class(f['properties'])=='open_green'])
-  paving=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf'])
-  self.allowed_surface=unary_union([self.walk,self.road,self.parking,grass,paving,self.station]).difference(self.erf)
   weights[contains_xy(grass,self.X,self.Y)]=self.rules['grass_cost'];weights[contains_xy(self.unknown_green,self.X,self.Y)]=10;weights[contains_xy(paving,self.X,self.Y)]=3
   weights[contains_xy(self.parking,self.X,self.Y)]=3;weights[contains_xy(self.road,self.X,self.Y)]=self.rules['road_cost'];weights[contains_xy(self.walk.buffer(.05),self.X,self.Y)]=self.rules['pavement_cost']
   # Prefer the centre of a pavement strip so the parallel bundle has room.
