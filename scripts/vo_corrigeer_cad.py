@@ -64,11 +64,12 @@ def write_corrected_candidate(data,previous,out):
   if d['new_codes']:
    p=list(g.coords[-1]);symbol('NIEUWE MOF',p,layer);text('EM',(p[0]+.8,p[1]+.8),layer);d['end_mof_positions'].append(p)
  supplemental_work(data,joints,doc,previous_parts=old_parts);draw_supplemental(data,symbol,text,line)
- # Preserve circles/assignments; point the overzetter symbols at the revised main.
+ # Preserve circles/assignments; place symbols behind the balls, away from cable.
+ from vo_annotaties import overzetter_position
  overzetters=[h for h,name in symbol_types.items() if name=='OVERZETTER'];records=[r for r in data['connections'] if r['overzetter']]
  if len(overzetters)!=len(records):raise ValueError('Overzetterregister en CAD verschillen.')
  for handle,r in zip(overzetters,records):
-  e=doc.entitydb[handle];_,contact=nearest_points(Point(r['xy']),lines[r['direction']]);dx=contact.x-r['xy'][0];dy=contact.y-r['xy'][1];L=math.hypot(dx,dy) or 1;p=(r['xy'][0]+dx/L*2.6,r['xy'][1]+dy/L*2.6);center=bbox.extents([e]).center;e.translate(p[0]-center.x,p[1]-center.y,0)
+  e=doc.entitydb[handle];p,_=overzetter_position(r['xy'],lines[r['direction']],cfg['rules'].get('overzetter_circle_offset_m',2.6));center=bbox.extents([e]).center;e.translate(p[0]-center.x,p[1]-center.y,0)
  restore_source_xrefs(doc,data);removals=[]
  # Native cable text attached only to the removed arm must not remain orphaned.
  data['removed_native_labels']=[]
@@ -78,5 +79,8 @@ def write_corrected_candidate(data,previous,out):
   for code,original,removed,used in removals:
    if re.fullmatch(r'\s*\d+(?:Al|Cu)?\s*/\s*\(was\s+'+re.escape(code[3:])+r'\)\s*',label) and point.distance(removed)<2 and point.distance(used)>2:
     data['removed_native_labels'].append({'handle':e.dxf.handle,'text':label});msp.delete_entity(e);break
- data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types;data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
+ data['drawing']['cable_style']=apply_cable_style(doc,new_layers=[d['layer'] for d in data['directions']]);data['drawing']['new_entity_handles']=generated;data['drawing']['symbol_types']=symbol_types
+ from vo_annotaties import apply_annotation_layout
+ apply_annotation_layout(doc,data)
+ data['drawing']['file']=str(out/(data['station']+' - LS VO rechte straten en moffen.dxf'));doc.saveas(data['drawing']['file']);data['drawing']['audit_errors']=len(ezdxf.readfile(data['drawing']['file']).audit().errors)
  return data
