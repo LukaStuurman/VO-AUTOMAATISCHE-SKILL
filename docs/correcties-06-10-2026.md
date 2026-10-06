@@ -16,6 +16,12 @@ De bochten buiten de rijbaan mogen geen behouden hoofdkabel raken of kruisen. De
 
 Gebruik meestal de BGT-voetpadstrook als leidraad en controleer alle buitenste kabels. Een uitgebreide perceelanalyse is niet nodig voor deze gewone routecorrectie. BGT-erf/tuin is geen vrije strook. Als de stoep krap is, mag de getekende bundel beperkt over de grens steken, omdat echte kabels dichter bij elkaar liggen dan de tekenoffset. Laat het tracé in/langs de stoep en vermijd duidelijke tuinroutes, bomen en kabelkruisingen.
 
-Bij aftakkingen tussen behouden hoofdkabels en de uiteinden van behouden kabel hoort `BESTAANDE MOF`. Alleen huisaansluittakken worden genegeerd. Nieuwe kabeluiteinden krijgen `NIEUWE MOF`. Nieuwe fysieke knippen op behouden kabels staan afzonderlijk als werk geregistreerd.
+Alleen een mof die al werkelijk in de bron aanwezig is krijgt `BESTAANDE MOF` met **Bestaand** ernaast. Een nieuwe eind-/kniplocatie op een behouden kabel krijgt `NIEUWE MOF`. Een nieuwe VM/AM-verbinding gebruikt het bestaand-nieuw-blok. De eerdere uitleg dat ieder behouden kabeluiteinde een bestaand symbool zou krijgen is vervallen.
 
 Herzie voor een lokale correctie de eigen bronkandidaat met dezelfde aansluitingstoewijzing en echte mofcontacten. Noem zo'n revisie geen nieuwe test vanaf nul. Bij langere gezamenlijke frontages mag bundelherstel een ruimer lijnstuk heropbouwen, mits beschermde mofcontacten, terrein, kabelvrijheid en de haakse oversteken blijven kloppen.
+
+## Rechte straten en daadwerkelijke verbindingen
+
+Gebruik één langer recht gezamenlijk tracé aan dezelfde kant van een bomenrij. Behoud lanevolgorde en 0,20 m tekenoffset; voorkom losse knikjes per boom. Controleer haakse oversteken na iedere vereenvoudiging.
+
+Een aftakmof ligt op het echte gezamenlijke contact van nieuwe en bestaande kabel; verleng zo nodig het behouden deel tot dat contact. Een VM behoudt één gebruikte arm en knipt de oude kabel op de mof af. Knip ook de ongebruikte zichtbare bronlijn in een eigen projectweergave, ruim gekoppelde oude tekst op en bescherm overige gebruikte kabeldelen. Alleen overlays wijzigen is onvoldoende. De oorspronkelijke bronnen blijven intact.
