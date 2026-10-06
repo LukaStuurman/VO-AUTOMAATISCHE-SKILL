@@ -36,3 +36,4 @@ Lever DXF/DWG, overzicht en stationsdetail, aansluitregister, fysieke/rekenkundi
 
 - Een nieuw hoofdtracé loopt net voorbij de laatste aansluitkabels die het overneemt. Laat een afgeklemd projectiepunt geen te kort kabeluiteinde verbergen. Verleng, verplaats eindmof/tekst en herbereken.
 - Bouw gedeelde bochten vanuit één referentielijn met vaste lanevolgorde en 0,20 m offsets. Corrigeer geen afzonderlijke richtingsbochten op een manier die deze afstand verandert. Controleer de opgeslagen offsets.
+- Overzetterblokken staan achter de ontwerpstroombollen, van de kabel af: kabel → bol → overzetter. Richtinginformatie met totaal ampère en rekenlengte staat naast de eerste gevoede aansluiting langs het elektrische pad vanaf het station, inclusief mofaanloop en behouden hoofd-/aftakdelen. Houd annotaties leesbaar en verplaats de bronbollen niet.
