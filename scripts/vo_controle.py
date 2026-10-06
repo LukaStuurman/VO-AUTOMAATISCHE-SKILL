@@ -5,11 +5,16 @@ def validate_saved(data,sources,router):
  import ezdxf
  from shapely.geometry import shape,Point,LineString
  from shapely.ops import unary_union
- cfg=data['config'];doc=ezdxf.readfile(data['drawing']['file']);lines={d['id']:shape(d['display_main']) for d in data['directions']};vegetation=[];reuse_intersections=[];roads=[]
+ cfg=data['config'];doc=ezdxf.readfile(data['drawing']['file']);lines={d['id']:shape(d['display_main']) for d in data['directions']};vegetation=[];reuse_intersections=[];roads=[];private_hits=[]
  for d in data['directions']:
-  g=lines[d['id']];obstacle=g.intersection(router.physical_obstacles).difference(router.station)
+  g=lines[d['id']];obstacle=g.intersection(router.natural_obstacles).difference(router.station)
+  private=g.intersection(router.erf).difference(router.walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+  if not private.is_empty:private_hits.append({'direction':d['id'],'geometry':private.__geo_interface__,'length_m':private.length})
   if not obstacle.is_empty:vegetation.append({'direction':d['id'],'length_m':obstacle.length,'geometry':obstacle.__geo_interface__})
-  q=g.intersection(router.road);parts=list(q.geoms) if hasattr(q,'geoms') else [q]
+  # BGT pavement and carriageway edges can overlap. Limited graphical lane
+  # overshoot at the pavement edge is not a physical crossing of the road.
+  effective_road=router.road.difference(router.walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+  q=g.intersection(effective_road);parts=list(q.geoms) if hasattr(q,'geoms') else [q]
   for p in parts:
    if p.geom_type!='LineString' or p.length<1:continue
    chord=LineString([p.coords[0],p.coords[-1]]);roads.append({'direction':d['id'],'geometry':p.__geo_interface__,'length_m':p.length,'straightness_deviation_m':p.hausdorff_distance(chord),'straight':p.hausdorff_distance(chord)<.05})
@@ -39,5 +44,6 @@ def validate_saved(data,sources,router):
  symbols_ok=symbols['OVERZETTER']==sum(r['overzetter'] for r in data['connections'])
  data['drawing']['saved_symbol_counts']=dict(symbols)
  data['drawing']['nonperpendicular_crossings']=[r for r in roads if not r['perpendicular']]
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ data['drawing']['erf_intersections']=private_hits
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
