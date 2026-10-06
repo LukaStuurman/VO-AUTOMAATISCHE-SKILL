@@ -78,7 +78,7 @@ def validate_saved(data,sources,router):
      if n==name and e is not None and Point(bbox.extents([e]).center.xy).distance(Point(xy))<.05 and e.dxf.layer!=work['layer']:mof_errors.append({'code':work['code'],'reason':'Nieuwe eindmof op verkeerde richtingslaag'})
     if not any(e.dxf.layer==work['layer'] and e.dxf.text=='EM (was '+work['code'][3:]+')' and Point(e.dxf.insert.xy).distance(Point(xy))<2 for e in doc.modelspace().query('TEXT')):mof_errors.append({'code':work['code'],'reason':'Eindmoftekst mist juiste richtingslaag'})
  from vo_kabelafwerking import cable_layer
- style_errors=[];new_layers={d['layer'] for d in data['directions']}
+ style_errors=[];new_layers={d['layer'] for d in data['directions']}|{r['layer'] for r in data.get('station_tamps',[])}
  for title,cad in [('ontwerp',doc)]:
   for e in cad.modelspace().query('LWPOLYLINE'):
    if not (cable_layer(e.dxf.layer) or e.dxf.layer in new_layers):continue
@@ -110,5 +110,18 @@ def validate_saved(data,sources,router):
  data['drawing']['shared_offset_errors']=offset_errors
  from vo_annotaties import validate_annotation_layout
  annotation_errors=validate_annotation_layout(doc,data);data['drawing']['annotation_errors']=annotation_errors
- passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and not xref_errors and not end_errors and not offset_errors and not annotation_errors and saved_match and symbols_ok and not len(doc.audit().errors)
+ from vo_stationsuitloop import validate_station_exit
+ station_errors=validate_station_exit(doc,data);data['drawing']['station_exit_errors']=station_errors
+ for row in data.get('station_tamps',[]):
+  g=shape(row['geometry']);hit=g.intersection(router.natural_obstacles).difference(router.station)
+  if not hit.is_empty:vegetation.append({'direction':row['id'],'geometry':hit.__geo_interface__,'length_m':hit.length})
+  private=g.intersection(router.erf).difference(router.walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+  if not private.is_empty:private_hits.append({'direction':row['id'],'geometry':private.__geo_interface__,'length_m':private.length})
+ crossing_groups=[];crossing_group_errors=[]
+ for site in data['crossing_sites']:
+  members=[r for r in roads if r['site']==site['id']];u=site['road_axis'];positions=sorted([(shape(r['geometry']).interpolate(.5,normalized=True).x*u[0]+shape(r['geometry']).interpolate(.5,normalized=True).y*u[1],r['direction']) for r in members]);gaps=[positions[i+1][0]-positions[i][0] for i in range(len(positions)-1)]
+  crossing_groups.append({'site':site['id'],'directions':[n for _,n in positions],'adjacent_distances_m':gaps,'width_m':positions[-1][0]-positions[0][0] if positions else 0})
+  if any(abs(gap-cfg['rules']['lane_pitch_m'])>.01 for gap in gaps):crossing_group_errors.append({'site':site['id'],'reason':'Wegoversteek is niet één compacte bundel met 0.20 m afstand'})
+ data['drawing']['crossing_group_errors']=crossing_group_errors;data['drawing']['crossing_groups']=crossing_groups
+ passed=assignment_ok and trafo_ok and all(d['passes'] for d in data['directions']) and not data['drawing']['crossings'] and not data['drawing']['self_crossings'] and not vegetation and not private_hits and not reuse_intersections and all(r['straight'] and r['perpendicular'] for r in roads) and not removal_errors and not feed_errors and not mof_errors and not style_errors and not xref_errors and not end_errors and not offset_errors and not annotation_errors and not station_errors and not crossing_group_errors and saved_match and symbols_ok and not len(doc.audit().errors)
  return {'calculation_and_new_bundle_pass':passed,'saved_geometry_matches_checked_geometry':saved_match,'each_connection_once':assignment_ok,'direction_checks':[{'id':d['id'],'connections':len(d['records']),'current_A':d['load_A'],'fuse_A':d['limiting']['max_fuse_A'],'endpoint':d['geometry_calculation']['selected_endpoint'],'passes':d['passes']} for d in data['directions']],'trafo_pass':trafo_ok,'trafo':trafo,'new_new_crossings':data['drawing']['crossings'],'new_retained_intersections':reuse_intersections,'vegetation_intersections':vegetation,'road_segments':roads,'nonstraight_road_segments':sum(not r['straight'] for r in roads),'removal_overlaps_used_parts':removal_errors,'parcels_touched':parcels,'ownership_verified':False,'root_zones_verified':router.topo['root_zones_verified'],'original_unresolved_xrefs':data['drawing']['unresolved_original_xrefs'],'source_questions':[{'id':r['id'],'question':r['source_issue']} for r in data['connections'] if r.get('source_issue')],'execution_ready':False}
