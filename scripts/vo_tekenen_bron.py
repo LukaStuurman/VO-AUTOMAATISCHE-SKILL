@@ -152,16 +152,33 @@ def draw_source_design(data,out):
   if change:data['straight_street_bundles'].append(change)
   for name,g in display.items():display[name],_=perpendicular_crossings(g,lane_road,obstacles,region,name,sites,retained_obstacles(name))
  previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
- from vo_kabelafwerking import splice_after_crossing,supplemental_work,draw_supplemental,apply_cable_style
+ from vo_kabelafwerking import splice_after_crossing,supplemental_work,draw_supplemental,apply_cable_style,restore_source_xrefs
  data['splice_after_crossing_changes']=[]
  for d in ordered:
   if d['id'] not in cfg['rules'].get('splice_after_crossing',[]):continue
   display[d['id']],change=splice_after_crossing(d,display[d['id']],original_chains[d['primary_code']],road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles)
   if not change:raise ValueError('AM niet veilig direct na haakse oversteek geplaatst: '+d['id'])
   data['splice_after_crossing_changes'].append(change)
+ for d in ordered:
+  if d['id'] not in cfg['rules'].get('straight_frontage_house_side',[]):continue
+  display[d['id']],change=straight_frontage(display[d['id']],obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,margin=.3,house_points=[Point(r['xy']) for r in d['records']],other_lines=[g for n,g in display.items() if n!=d['id']])
+  if not change:raise ValueError('Geen veilig recht tracé aan huizenzijde: '+d['id'])
+  data.setdefault('house_side_frontage_changes',[]).append(dict(change,direction=d['id']))
+ from vo_kabelafwerking import extend_past_last_connection
+ data['connection_end_extensions']=[]
+ for d in ordered:
+  if d['id'] not in cfg['rules'].get('extend_past_last_connection',[x['id'] for x in ordered if not x.get('feed')]):continue
+  display[d['id']],change=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
+  if change:data['connection_end_extensions'].append(change)
+ from vo_gedeelde_offsets import shared_offsets
+ display,data['shared_offset_rebuild']=shared_offsets(display,ordered,obstacles,region,pitch)
+ for d in ordered:
+  if not d.get('feed'):display[d['id']],_=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
  data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
+  for r in d['records']:
+   if r['code'] in d['new_codes'] or r.get('new_connection'):r['new_tap']=list(lane.interpolate(lane.project(Point(r['tap']))).coords[0])
   from vo_paden import geometry_checks
   d['geometry_calculation']=geometry_checks(d,lane)
   d['search_limiting']=d['limiting'];d['limiting']=d['geometry_calculation']['selected']['limiting'];d['passes']=d['geometry_calculation']['selected']['passes']
@@ -236,13 +253,7 @@ def draw_source_design(data,out):
   if not q.is_empty:crossings.append({'a':a,'b':b,'geometry':q.__geo_interface__})
  cable_style=apply_cable_style(doc,new_layers=[d['layer'] for d in ordered])
  doc.header['$INSUNITS']=6;doc.set_modelspace_vport(height=360,center=region.centroid.coords[0]);audit=doc.audit();out=Path(out);out.mkdir(exist_ok=True);file=out/(cfg['station_id']+' - LS VO uit brongegevens.dxf');doc.saveas(file)
- if any(row.get('old_interval') for row in data['splice_contact_adjustments']) or data.get('additional_display_removals') or cfg.get('klic_dxf'):
-  from vo_klic_weergave import make_clipped_klic_view,convert_klic_dwg
-  view,_=make_clipped_klic_view(data,previous_retained,out);dwg=convert_klic_dwg(view);matches=[]
-  for block in doc.blocks:
-   if block.block.dxf.flags&4 and 'KLIC' in block.name.upper() and 'LS' in block.name.upper():block.block.dxf.xref_path=str(dwg);matches.append(block.name)
-  if len(matches)!=1:raise ValueError('KLIC-projectweergave niet eenduidig gekoppeld.')
-  data['klic_display_reference']={'block':matches[0],'dwg':str(dwg),'dxf':str(view),'source_unchanged':True};doc.saveas(file)
+ restore_source_xrefs(doc,data);doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
  data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types;data['drawing']['cable_style']=cable_style
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
