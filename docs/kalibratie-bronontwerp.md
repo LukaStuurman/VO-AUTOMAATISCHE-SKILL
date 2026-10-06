@@ -1,5 +1,7 @@
 # Kalibratie van het bronontwerp — 011.601
 
+Dit verslag beschrijft de test van 5 oktober. De latere [gebruikerscorrecties van 6 oktober](correcties-06-10-2026.md) voegen eindmofherkenning, corridorverfijning, eerdere mofaanloop, haakse oversteken en annotatie-opruiming toe. De nieuwe correctietest behoudt de zeven afzekeringen en alle aansluitingen, met 19 geslaagde gerichte tests en een gecontroleerde opgeslagen DXF. De negen kabeloversteken op vier gedeelde plaatsen staan onder 90° op de lokale BGT-wegas. De corridormetingen hieronder horen bij de versie van 5 oktober.
+
 Getest op 5 oktober 2026. De eerdere `maak_vo_tekening.py`-uitwerking gebruikte de gebruikersoplossing voor routes/toewijzingen en is een referentiegestuurde reconstructie. De nieuwe pipeline reconstrueert aansluitingen, kiest hergebruik/splitsingen, routes, vrije moffen, overdrachten en zekeringen uit oorspronkelijke bronnen. De oplossing is tijdens genereren door een runtime-leescontrole geblokkeerd en wordt pas in de evaluator gelezen.
 
 Dit is kalibratie met kennis van de vergelijking, geen claim dat eerdere kennis is gewist. Algemene regels zijn na verschillen aangepast; er zijn geen voorbeeldroutes, kabelcodes, gewenste groepsaantallen, mofcoördinaten of zekeringen in de generator gezet. Eén expliciet bronfeit is gecorrigeerd: het oorspronkelijke niet betrouwbaar gekoppelde 8,4A-rondje is een geplande 4,6A-publieke laadvoorziening op de door de gebruiker gecorrigeerde locatie. Die categorie/locatie is projectinvoer, niet een opgelegde richting.
