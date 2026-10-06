@@ -1,4 +1,4 @@
-"""Projectweergave knippen; oorspronkelijke KLIC en andere gebruikte delen behouden."""
+"""Historische projectkopie; de actuele VO-workflow wijzigt geen externe referenties."""
 import math,re,json,subprocess,os
 from pathlib import Path
 
@@ -45,8 +45,6 @@ def make_clipped_klic_view(data,previous_parts,out):
     bb=bbox.extents([e]);p=Point(bb.center.xy)
     if p.distance(removed)<.02 and p.distance(used)>.02:
      handle=e.dxf.handle;msp.delete_entity(e);logs.append({'code':code,'source_handle':handle,'kind':'Eindmof op verwijderd armdeel','original_source_modified':False})
- from vo_kabelafwerking import apply_cable_style
- data['klic_cable_style']=apply_cable_style(doc)
  out=Path(out);out.mkdir(exist_ok=True);file=out/'KLIC LS - ontwerpweergave.dxf';doc.saveas(file);data['klic_display_edits']=logs;data['klic_display_removals']=[{'code':code,'geometry':removed.__geo_interface__,'protected_used_geometry':used.__geo_interface__} for code,original,removed,used in removals];data['config']['klic_display_dxf']=str(file.resolve());return file,removals
 
 def convert_klic_dwg(dxf_path):
