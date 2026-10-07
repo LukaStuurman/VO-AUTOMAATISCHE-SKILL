@@ -2,10 +2,12 @@
 import math,collections,copy
 from reken_richtingen import calculate_path,CATALOGUE,STEPS
 
-def design(s,router,cfg):
+def design(s,router,cfg,_partitions=None,_depth=0):
  from shapely.geometry import Point,LineString
  from shapely.ops import substring,nearest_points,unary_union,linemerge
  groups=s['groups'];parents={};attachment={};rules=cfg['rules']
+ if _depth:
+  router.weights=router.base_weights.copy();router.solve()
  def connect_joint(path,point):
   points=list(path.coords);xy=tuple(point.coords)[0]
   while len(points)>2:
@@ -19,7 +21,7 @@ def design(s,router,cfg):
  for c,g in groups.items():
   options=[]
   for p,main in groups.items():
-   if p==c or main['type']!='95Al' or main['geometry'].length<=g['geometry'].length:continue
+   if p==c or not p.endswith('-00') or c.rsplit('-',1)[0]!=p.rsplit('-',1)[0] or main['geometry'].length<=g['geometry'].length:continue
    for xy in [g['geometry'].coords[0],g['geometry'].coords[-1]]:
     pos=main['geometry'].project(Point(xy));gap=main['geometry'].distance(Point(xy))
     if gap<.2 and 1<pos<main['geometry'].length-1:options.append((gap,p,pos,xy))
@@ -33,24 +35,29 @@ def design(s,router,cfg):
   for part in pieces:
    c=part['code'];g=groups[c];cap=max(step[1] for step in STEPS if step[1]<=CATALOGUE[g['type']]['Imax'])
    retain=g['type']=='95Al' or load<=cap
-   if retain:retained.append(dict(part,type=g['type'],combo=g['combo'],geometry=substring(g['geometry'],part['lo'],part['hi'])))
+   if retain:retained.append(dict(part,type=g['type'],combo=g['combo'],geometry=substring(g['geometry'],part['lo'],part['hi']),**({'material_segments':g['material_segments']} if 'material_segments' in g else {})))
    else:newcodes.append(c)
   directions.append({'primary_code':primary,'records':records,'new_codes':newcodes,'retained':retained,'source_children':children,'load_A':load,'lo':lo,'hi':hi,'parent_child_positions':attachment})
  for c,g in sorted(groups.items()):
   if c in parents:continue
   children=[x for x,p in parents.items() if p==c];allrecords=g['records']+[r for child in children for r in groups[child]['records']];load=sum(r['current_A'] for r in allrecords)
+  if _partitions and c in _partitions:
+   boundaries=[0]+sorted(_partitions[c])+[g['geometry'].length]
+   for lo,hi in zip(boundaries,boundaries[1:]):
+    own=[r for r in g['records'] if lo-.000001<=r['chain_position_m']<hi-.000001 or hi==g['geometry'].length and r['chain_position_m']>=lo];child=[x for x in children if lo<=attachment[x]['parent_position']<hi]
+    if own or child:build(c,own,child,lo,hi)
+   continue
   capacity=max(step[1] for step in STEPS if step[1]<=CATALOGUE[g['type']]['Imax'])
-  if g['type']=='95Al' and load>capacity and children:
+  if load>capacity and (g['type']=='95Al' or children):
    choices=[]
-   for child in children:
-    junction=attachment[child]['parent_position']
+   cuts=[attachment[child]['parent_position'] for child in children]+[(a['chain_position_m']+b['chain_position_m'])/2 for a,b in zip(sorted(g['records'],key=lambda r:r['chain_position_m']),sorted(g['records'],key=lambda r:r['chain_position_m'])[1:])]
+   for junction in cuts:
     for side in [-1,1]:
      cut=junction+side*rules.get('joint_separation_m',2)
      left=[r for r in g['records'] if r['chain_position_m']<=cut];right=[r for r in g['records'] if r['chain_position_m']>cut];lc=[x for x in children if attachment[x]['parent_position']<=cut];rc=[x for x in children if x not in lc]
      ll=sum(r['current_A'] for r in left)+sum(r['current_A'] for x in lc for r in groups[x]['records']);rl=load-ll
      if not left or not right or max(ll,rl)>capacity:continue
-     replacement_anchor=0 if groups[child]['type']=='50Al' else 10
-     choices.append(((ll-rl)**2+replacement_anchor,cut,left,right,lc,rc))
+     choices.append(((ll-rl)**2,cut,left,right,lc,rc))
    if not choices:raise ValueError('Meer dan twee deelrichtingen nodig: '+c)
    _,cut,left,right,lc,rc=min(choices,key=lambda x:x[0]);build(c,left,lc,0,cut);build(c,right,rc,cut,g['geometry'].length)
   else:build(c,g['records'],children,0,g['geometry'].length)
@@ -75,6 +82,33 @@ def design(s,router,cfg):
   for r in groups[c]['records']:r['new_tap']=contacts[r['id']]
   code_paths[c]=paths;core.append(paths[-1])
  router.discount(core)
+ # A retained cable with loads on both sides of a transverse shared trench
+ # cannot be kept as a continuous crossing. Split it into independent feeds
+ # in the connection gap when another physical position is available.
+ if core and len(directions)<len(cfg['direction_slots']) and _depth<4:
+  options=[]
+  for d in directions:
+   if d['primary_code'] in d['new_codes']:continue
+   chain=groups[d['primary_code']]['geometry'];own=sorted(r['chain_position_m'] for r in d['records'] if r['code']==d['primary_code'])
+   if len(own)<2:continue
+   for route in core:
+    hit=chain.intersection(route);points=list(hit.geoms) if hasattr(hit,'geoms') else [hit]
+    for point in points:
+     if point.geom_type!='Point':continue
+     pos=chain.project(point)
+     if not own[0]+.1<pos<own[-1]-.1:continue
+     a,b=chain.interpolate(max(0,pos-1)),chain.interpolate(min(chain.length,pos+1));at=route.project(point);c,e=route.interpolate(max(0,at-1)),route.interpolate(min(route.length,at+1));u=(b.x-a.x,b.y-a.y);v=(e.x-c.x,e.y-c.y);den=math.hypot(*u)*math.hypot(*v)
+     if not den or abs(u[0]*v[1]-u[1]*v[0])/den<.55:continue
+     left=max(p for p in own if p<pos);right=min(p for p in own if p>pos)
+     if right-left<rules.get('joint_separation_m',2):continue
+     options.append((min(pos-left,right-pos),d['primary_code'],(left+right)/2))
+  if options:
+   partitions=copy.deepcopy(_partitions or {})
+   for d in directions:
+    if d['lo']>0:partitions.setdefault(d['primary_code'],[]).append(d['lo'])
+    if d['hi']<groups[d['primary_code']]['geometry'].length:partitions.setdefault(d['primary_code'],[]).append(d['hi'])
+   _,code,cut=max(options);partitions.setdefault(code,[]).append(cut);partitions={c:sorted(set(v)) for c,v in partitions.items()}
+   return design(s,router,cfg,partitions,_depth+1)
  for d in directions:
   # Recompute after the joint trench is available, to favour shared excavation.
   d['new_paths']=[p for c in d['new_codes'] for p in code_paths[c]]
@@ -96,8 +130,8 @@ def design(s,router,cfg):
      if connection.intersects(router.physical_obstacles):continue
      feed_candidate=connect_joint(feed_candidate,p)
     reuse=max(abs(x-pos) for x in own+retained_joins)+rules.get('joint_separation_m',2)
-    check=calculate_path({'id':'joint-candidate','segments':[{'id':'feed','type':'150Al','length_m':feed_candidate.length},{'id':'retained','type':'95Al','length_m':reuse}]},'laatste_helft',CATALOGUE)
-    score=router.dist[n]+feed_candidate.length*.05+reuse*.05
+    check=calculate_path({'id':'joint-candidate','segments':[{'id':'feed','type':'150Al','length_m':feed_candidate.length},{'id':'retained','type':primary['type'],'length_m':reuse}]},'laatste_helft',CATALOGUE)
+    score=router.dist[n]*.5+feed_candidate.length+reuse*.1
     # A cheap early joint can leave an old curb loop crossing the new common
     # trench several times. Move the joint along the old main before replacing
     # all that cable; compare the retained downstream piece as a fixed route.
@@ -152,27 +186,26 @@ def design(s,router,cfg):
       if math.dist(points[-1],section_points[0])>.01:points.append(section_points[0])
       points.extend(section_points[1:]);r['new_tap']=points[-1];rebuilt.append(LineString(points));previous=r['tap']
     d['new_paths']=rebuilt
- # Planned connections have no old cable. Attach them to the nearest new LS direction.
- for r in s['records']:
-  if r['code']:continue
-  point=Point(r['xy'][:2]);choices=[]
-  for i,d in enumerate(directions):
-   network=unary_union(d['new_paths']);choices.append((network.distance(point),i))
-  _,i=min(choices);directions[i]['records'].append(r);directions[i]['load_A']+=r['current_A'];r['new_connection']=True;_,contact=nearest_points(point,unary_union(directions[i]['new_paths']));r['new_tap']=list(contact.coords)[0]
+ # A planned service can connect to a retained LS main as well as a new main.
+ from vo_geplande_aansluitingen import assign_planned
+ assign_planned(s['records'],directions,{c:g['geometry'] for c,g in groups.items()},rules.get('connection_end_clearance_m',.6))
  def assess(d):
   paths=[];new=[p for p in d['new_paths'] if p.length>0];lengths=[]
   for i,p in enumerate(new):
    paths.append({'id':f'new-{i}','segments':[{'id':f'new-{i}','type':'150Al','length_m':p.length}]});lengths.append(p.length)
   if d['feed']:
+   from vo_materialen import segments_between
    feeder=d['feed']['path'].length;root=d['feed']['position_m'];parent=groups[d['primary_code']]['geometry']
+   parent_part=next(p for p in d['retained'] if p['code']==d['primary_code'])
    for part in d['retained']:
     if part['code']==d['primary_code']:
-     distances=[abs(root-part['lo']),abs(root-part['hi'])]
+     endpoint_paths=[segments_between(part,root,end,'main') for end in [part['lo'],part['hi']]]
     else:
-     join=attachment[part['code']]['parent_position'];branch=groups[part['code']]['geometry'];ap=branch.project(Point(attachment[part['code']]['xy']));distances=[abs(join-root)+abs(part['lo']-ap),abs(join-root)+abs(part['hi']-ap)]
-    for j,L in enumerate(distances):
+     join=attachment[part['code']]['parent_position'];branch=groups[part['code']]['geometry'];ap=branch.project(Point(attachment[part['code']]['xy']));endpoint_paths=[segments_between(parent_part,root,join,'parent')+segments_between(part,ap,end,'branch') for end in [part['lo'],part['hi']]]
+    for j,segments in enumerate(endpoint_paths):
+     L=sum(s['length_m'] for s in segments)
      if L<=.01:continue
-     paths.append({'id':part['code']+f'-end-{j}','segments':[{'id':'feed','type':'150Al','length_m':feeder},{'id':part['code']+f'-{j}','type':'95Al','length_m':L}]});lengths.append(feeder+L)
+     paths.append({'id':part['code']+f'-end-{j}','segments':[{'id':'feed','type':'150Al','length_m':feeder}]+segments});lengths.append(feeder+L)
   longest=max(lengths)
   demand_dist=[]
   for r in d['records']:
@@ -194,6 +227,27 @@ def design(s,router,cfg):
     d.update(paths=full['selected']['paths'],checks=full['selected']['checks'],limiting=full['selected']['limiting'],passes=True);fits=True
   return fits
  for d in directions:assess(d)
+ reroute_short_feeds_first(directions,router,connect_joint,assess)
+ # If the feed length, branch or material transition limits a reused circuit,
+ # partition that source interval again. This uses current source taps and
+ # computed capacity, never an example direction number or expected fuse.
+ failed=[d for d in directions if not d['passes'] and d['retained'] and not d['new_codes']]
+ if failed and _depth<3:
+  partitions=copy.deepcopy(_partitions or {})
+  for d in directions:
+   if d['lo']>0:partitions.setdefault(d['primary_code'],[]).append(d['lo'])
+   if d['hi']<groups[d['primary_code']]['geometry'].length:partitions.setdefault(d['primary_code'],[]).append(d['hi'])
+  for d in failed:
+   records=sorted([r for r in d['records'] if r['code']==d['primary_code']],key=lambda r:r['chain_position_m']);options=[]
+   for i in range(1,len(records)):
+    a,b=records[i-1]['chain_position_m'],records[i]['chain_position_m']
+    if b-a<.1:continue
+    left=sum(r['current_A'] for r in records[:i]);right=sum(r['current_A'] for r in records[i:]);options.append((max(left,right),-abs(b-a),(a+b)/2))
+   if not options:raise ValueError('Kabelpad past niet en heeft geen bruikbare bronscheiding: '+d['primary_code'])
+   partitions.setdefault(d['primary_code'],[]).append(min(options)[2])
+  partitions={c:sorted(set(v)) for c,v in partitions.items()}
+  if sum(len(v) for v in partitions.values())+len([c for c in groups if c not in parents])>len(cfg['direction_slots']):raise ValueError('Onvoldoende stationsposities voor noodzakelijke kabelpadverdeling')
+  return design(s,router,cfg,partitions,_depth+1)
  # Move only an endpoint cluster to an adjacent circuit when length lowers a circuit's capacity.
  transfers=[]
  for d in directions:
@@ -223,30 +277,56 @@ def design(s,router,cfg):
    for r,candidate in zip(cluster,candidates):
     d['records'].remove(r);r.update(new_connection=True,new_tap=candidate['new_tap']);target['records'].append(r);transfers.append({'connection':r['id'],'from_code':d['primary_code'],'to_code':target['primary_code']})
    assess(d);assess(target)
+ for d in directions:
+  paths=list(d['new_paths'])
+  if d.get('feed'):
+   parent=groups[d['primary_code']]['geometry'];part=next(p for p in d['retained'] if p['code']==d['primary_code']);prefix=list(d['feed']['path'].coords)
+   for end in [part['lo'],part['hi']]:
+    tail=list(substring(parent,d['feed']['position_m'],end).coords)
+    if len(tail)>1:paths.append(LineString(prefix+[p[:2] for p in tail[1:]]))
+  d['layout_order_path']=max(paths,key=lambda p:p.length)
+ return order_and_allocate(directions,s,cfg),transfers
+
+def reroute_short_feeds_first(directions,router,connect_joint,assess=None):
+ from shapely.geometry import Point
+ core=[max(d['new_paths'],key=lambda p:p.length) for d in directions if d['new_codes']];completed=[]
+ for d in sorted([d for d in directions if d.get('feed') and not d['new_codes']],key=lambda d:d['feed']['path'].length):
+  router.discount(core+completed);p=Point(d['feed']['xy']);path=connect_joint(router.path(d['feed']['xy']),p)
+  if path.length<d['feed']['path'].length-.1:
+   candidate=copy.copy(d);candidate['feed']=dict(d['feed'],path=path);candidate['new_paths']=[path]
+   if assess is None or assess(candidate):d.update(candidate)
+  completed.append(d['feed']['path'])
+
+def order_and_allocate(directions,s,cfg):
  # Draw order follows spatial terminal order, with free slots grouped in the middle.
  from functools import cmp_to_key
  def before(a,b):
-  left=max(a['new_paths'],key=lambda p:p.length);right=max(b['new_paths'],key=lambda p:p.length);last=(left.coords[0][0],left.coords[0][1])
-  for distance in range(2,int(min(left.length,right.length)),2):
+  left=a.get('layout_order_path',max(a['new_paths'],key=lambda p:p.length));right=b.get('layout_order_path',max(b['new_paths'],key=lambda p:p.length));last=(left.coords[0][0],left.coords[0][1])
+  corridor_width=max(2.5,cfg['rules']['lane_pitch_m']*(len(directions)-1)+cfg['rules'].get('grid_m',.65))
+  for distance in range(cfg['rules'].get('station_exit_join_m',16),int(min(left.length,right.length)),2):
    p=left.interpolate(distance);q=right.interpolate(distance)
-   if p.distance(q)>.8:
+   if p.distance(q)>corridor_width:
     mid=((p.x+q.x)/2,(p.y+q.y)/2);v=(mid[0]-last[0],mid[1]-last[1]);side=v[0]*(q.y-p.y)-v[1]*(q.x-p.x)
     if abs(side)>.001:return -1 if side>0 else 1
    last=((p.x+q.x)/2,(p.y+q.y)/2)
   return -1 if left.length<right.length else 1
- def mostly_new(d):
-  retained=sum(p['geometry'].length for p in d['retained']);new=max(p.length for p in d['new_paths'])
-  return not retained or new/(new+retained)>.75
- new_bank=sorted([d for d in directions if mostly_new(d) and not d['retained']],key=cmp_to_key(before))+sorted([d for d in directions if mostly_new(d) and d['retained']],key=cmp_to_key(before))
- reuse_bank=sorted([d for d in directions if not mostly_new(d) and d['new_codes']],key=cmp_to_key(before))+sorted([d for d in directions if not mostly_new(d) and not d['new_codes']],key=lambda d:d['feed']['path'].length,reverse=True)
  from vo_stationsuitloop import allocation_order
- directions=new_bank+reuse_bank;slots=allocation_order(cfg);cfg['direction_slots']=slots;n=len(directions)
+ from vo_stationsuitloop import station_frame
+ frame=station_frame(s['station_entity'],{f'R{i+2}':max(d['new_paths'],key=lambda p:p.length) for i,d in enumerate(directions)});c=frame['front_center'];u=frame['port_axis'];normal=frame['outward_axis']
+ def angle(d):
+  route=max(d['new_paths'],key=lambda p:p.length);p=route.interpolate(min(12,route.length));return math.atan2((p.x-c[0])*u[0]+(p.y-c[1])*u[1],(p.x-c[0])*normal[0]+(p.y-c[1])*normal[1])
+ def spatial(a,b):
+  difference=angle(a)-angle(b)
+  return (-1 if difference<0 else 1) if abs(difference)>.45 else before(a,b)
+ directions=sorted(directions,key=cmp_to_key(spatial));slots=allocation_order(cfg);cfg['direction_slots']=slots;n=len(directions)
  if n>len(slots):raise ValueError('Te weinig vrije richtingen.')
  # Select occupied positions outside-in, then keep spatial route order on
  # those physical number positions. Using the priority list as lane order
  # would permute banks and introduce avoidable cable crossings.
  chosen=sorted(slots[:n])
  for d,slot in zip(directions,chosen):
-  d['id']=f'R{slot}';d['layer']=f'Aansluiting LS K{slot:02}';d['new_cable_label']='150Al+' if any(p.get('combo') for p in d['retained']) else '150Al'
+  from vo_materialen import contact_material
+  contact=contact_material(next(p for p in d['retained'] if p['code']==d['primary_code']),d['feed']['position_m']) if d.get('feed') else {'combo':False}
+  d['id']=f'R{slot}';d['layer']=f'Aansluiting LS K{slot:02}';d['new_cable_label']='150Al+' if contact['combo'] else '150Al'
   for r in d['records']:r['direction']=d['id'];r['overzetter']=r['code'] in d['new_codes'] or r.get('new_connection',False)
- return directions,transfers
+ return directions

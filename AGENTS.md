@@ -1,6 +1,6 @@
 # LS-VO ontwerpen uit brongegevens
 
-Gebruik `SKILL.md` voor werk aan LS-stationsgebieden.
+Gebruik `skills/enexis-vo-stationsgebieden/SKILL.md` voor werk aan LS-stationsgebieden.
 
 Bij een ontwerp vanaf een leeg stationsgebied zijn de oorspronkelijke CAD, bestaande KLIC/WFS, topografie/BGT, perceel-/grondinformatie, kader en expliciete projectfeiten de invoer. Lees of importeer geen uitgewerkte versie van datzelfde station om routes, richtinggroepen, mofposities, overzetters of labels over te nemen. Een voorbeeld mag na een opgeslagen kandidaat als vergelijking dienen. Leer algemene regels uit verschillen; hardcode geen voorbeeldcoördinaten, kabelcodes, groepsaantallen of verwachte zekeringen in de generator.
 
@@ -42,3 +42,7 @@ Lever DXF/DWG, overzicht en stationsdetail, aansluitregister, fysieke/rekenkundi
 - Houd tekst vrij van richtingspolylijnen, ook bij de tamp-EM's. Kabelteksten staan boven of onder hun eigen lokale rechte kabelstuk en lopen ermee mee. Stapel nabijgelegen bundelteksten met voldoende ruimte in dezelfde geometrische kabelvolgorde. Zet alle host-mofblokken bovenaan de draw order en lees dit terug uit de DXF; wijzig hiervoor geen kabels of externe referenties.
 - Zet in het afzekeringsblok alle twaalf rondjes exact onder elkaar. Elke afgezekerde richting, inclusief tamp, krijgt een gecentreerd plusje op haar eigen richtingslaag; vrije richtingen blijven leeg. Eén wipeout achter het blok dekt rondjes én de volledige attributenteksten. Bewerk een eigen blokkopie en controleer tekenvolgorde en dekking in de opgeslagen CAD.
 - Plusjes lopen horizontaal en verticaal van cirkelrand tot tegenoverliggende cirkelrand. Controleer alle vier eindpunten tegen de cirkelstraal, niet alleen het middelpunt en de laag.
+
+- Gebruik bij broncorrecties het controleblad om betrokken richtingen te kiezen. Onderzoek eerst een veilige herverdeling of openbare aanloop rond behouden kabeluiteinden. Behoud alle eigen, aangrenzende en externe aansluitingen. Stop op het eerste bruikbare echte kabelcontact in plaats van te kruisen en terug te lopen naar een voorlopige mof. Bouw gezamenlijk overstekende richtingen daarna weer uit één as op; controleer ook de buitenste lane tegen bomen.
+- Een geplande aansluiting zonder WFS mag naar een berekend passende nieuwe óf behouden hoofdkabel. Leg die koppeling als gepland vast, zonder fictief bestaand WFS-servicepunt; overzetter alleen bij een nieuwe main. Gebruik kabelverbruik en -opwek afzonderlijk en voeg de geplande belasting eenmaal toe.
+- Hervat eigen checkpoints met de actuele geometrie, synchroniseer die vóór de stationsuitloop en voer verbruikte fases niet opnieuw uit. Controleer de opgeslagen hoofdkabels via de eigen gegenereerde handles, niet via een afstand tot het stationsblok-insertpunt.

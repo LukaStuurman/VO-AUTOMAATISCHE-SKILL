@@ -52,6 +52,7 @@ def main():
  result={'station':cfg['station_id'],'config':cfg,'directions':serial(directions),'connections':sources['records'],'transfers':transfers,'trafo':trafo,'removal_ledger':removal_ledger(sources,directions),'all_direction_checks':all(d['passes'] for d in directions),'input_hashes':hashes,'script_hashes':script_hashes,'solution_access':'Only declared original sources; solution paths blocked by runtime audit hook','reference_used_in_generator':False}
  (out/'Broninvoer gebruikt.json').write_text(json.dumps(cfg,ensure_ascii=False,indent=2),encoding='utf8');(out/'Ontwerp uit brongegevens.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
  result['existing_chains']=serial({c:g['geometry'] for c,g in sources['groups'].items()})
+ result['material_evidence']={c:g['source_evidence'] for c,g in sources['groups'].items()}
  result=draw_source_design(result,out);result['checks']=validate_saved(result,sources,router);result['all_direction_checks']=all(d['passes'] for d in result['directions']);result['all_source_files_read']=sorted(readlog);result['elapsed_seconds']=time.monotonic()-started
  result['previews']=preview(result,out)
  import csv

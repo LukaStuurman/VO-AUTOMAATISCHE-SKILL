@@ -1,6 +1,11 @@
 import unittest
 
 class HaakseOversteken(unittest.TestCase):
+ def test_touching_road_edge_is_not_crossing_road_interior(self):
+  from shapely.geometry import box,LineString
+  from vo_oversteken import crossing_sites
+  self.assertEqual(crossing_sites({'R2':LineString([(-5,2),(5,2)])},box(-10,-2,10,2)),[])
+  self.assertEqual(len(crossing_sites({'R2':LineString([(0,-4),(0,4)])},box(-10,-2,10,2))),1)
  def test_straight_diagonal_is_not_a_valid_crossing(self):
   from shapely.geometry import box,LineString
   from vo_oversteken import crossing_angle

@@ -82,7 +82,8 @@ def apply_text_layout(doc,data):
    code=re.search(r'\(was\s+([^)]+)\)',e.dxf.text)
    parts=[r for d in data['directions'] for r in d['retained'] if code and r['code'].endswith(code[1])]
    from shapely.geometry import shape
-   matching=[shape(r['geometry']) for r in parts]
+   from vo_materialen import drawing_parts
+   matching=[shape(v['geometry']) if isinstance(v['geometry'],dict) else v['geometry'] for r in parts for v in drawing_parts(r,shape(data['existing_chains'][r['code']]))]
    matches=[(c,g) for c,g in cables if c.dxf.layer=='01 - Bestaande kabel' and any(g.hausdorff_distance(v)<.01 for v in matching)]
   if not matches:raise ValueError('Geen eigen kabel voor tekst '+e.dxf.text)
   options=[(c,g,run) for c,g in matches for run in straight_runs(g)]
@@ -104,7 +105,11 @@ def apply_text_layout(doc,data):
  for group in groups:
   u=group[0]['u'];n=group[0]['n'];dot=lambda p,v:p[0]*v[0]+p[1]*v[1]
   lo=max(min(dot(p,u) for p in r['run'].coords) for r in group);hi=min(max(dot(p,u) for p in r['run'].coords) for r in group);width=max(r['width'] for r in group)
-  if hi-lo<width+.4:raise ValueError('Onvoldoende gezamenlijk recht kabelstuk voor teksten: '+', '.join(r['e'].dxf.text+' '+r['e'].dxf.handle for r in group))
+  if hi-lo<width+.4:
+   if len(group)>1:raise ValueError('Onvoldoende gezamenlijk recht kabelstuk voor teksten: '+', '.join(r['e'].dxf.text+' '+r['e'].dxf.handle for r in group))
+   # A short material transition still needs its actual cable label. Keep the
+   # local tangent and centre; extending the text never extends the cable.
+   center=(lo+hi)/2;lo=center-(width+.5)/2;hi=center+(width+.5)/2
   group.sort(key=lambda r:dot(r['run'].coords[0],n));base=min(hi-width-.2,max(lo+.2,sum(dot(r['old'],u) for r in group)/len(group)));linepos=[dot(r['run'].coords[0],n) for r in group];gap=max(1.5,2*max(r['e'].dxf.height for r in group));choices=[]
   for r in group:r['e'].dxf.rotation=math.degrees(math.atan2(u[1],u[0]))
   for side in [1,-1]:

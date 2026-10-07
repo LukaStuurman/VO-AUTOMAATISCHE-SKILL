@@ -43,144 +43,182 @@ def draw_source_design(data,out):
  for correction in cfg.get('source_corrections',[]):
   e=doc.entitydb[correction['source_circle_handle']];old=e.dxf.insert;new=correction['xy'];dx=new[0]-old.x;dy=new[1]-old.y;e.translate(dx,dy,0)
   r=next(x for x in data['connections'] if x['id']==correction['source_circle_handle']);t=doc.entitydb[r['original_text_handle']];t.translate(dx,dy,0);t.dxf.text=dec(correction['cable_current_A'],1)
- # Simplify each physical main, retaining street corners. House leads are not drawn.
- masters={d['id']:shape(max(d['new_paths'],key=lambda p:shape(p).length)) for d in data['directions']}
- # One simplification per shared backbone chain prevents small independent
- # simplification differences from turning parallel wires into crossings.
- trie={'point':None,'children':{},'terminal':set()}
- for name,g in masters.items():
-  node=trie
-  for p in g.coords:
-   key=tuple(round(float(v),5) for v in p[:2]);node=node['children'].setdefault(key,{'point':key,'children':{},'terminal':set()})
-  node['terminal'].add(name)
- rebuilt={}
- def rebuild(node,prefix):
-  points=[node['point']]
-  while len(node['children'])==1 and not node['terminal']:
-   node=next(iter(node['children'].values()));points.append(node['point'])
-  g=LineString(points).simplify(cfg['rules'].get('drawing_simplification_m',.45)) if len(points)>1 else None
-  if g is not None and g.intersects(obstacles):g=LineString(points)
-  if cfg['rules'].get('drawing_simplification_mode')=='visibility' and g is not None:g=straighten(LineString(points),obstacles.buffer(.7),cfg['rules'].get('drawing_simplification_m',.9))
-  result=prefix+(list(g.coords)[1:] if prefix and g is not None else list(g.coords) if g is not None else points)
-  for name in node['terminal']:rebuilt[name]=LineString(result)
-  for child in node['children'].values():rebuild(child,result+[child['point']])
- for child in trie['children'].values():rebuild(child,[])
- masters=rebuilt
- ordering_lengths={d['id']:d.get('layout_priority_length_m',masters[d['id']].length) for d in data['directions']}
- from vo_trace_verfijnen import straight_frontage,earlier_joint_approach
- roads=active_features('wegdeel');road=unary_union([shape(f['geometry']) for f in roads if f['properties'].get('functie')=='rijbaan lokale weg'])
- from vo_terrein import vegetation_class
+ roads=active_features('wegdeel');road=unary_union([shape(f['geometry']) for f in roads if f['properties'].get('functie')=='rijbaan lokale weg']).difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
  surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel')]+[station_box])
- frontage_surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf']+[station_box])
- data['trace_refinements']=[]
- for d in data['directions']:
-  g=masters[d['id']]
-  scopes=cfg['rules'].get('refinement_scope',{})
-  if not d['feed'] and d['id'] in scopes.get('straight_frontage',[d['id']]):
-   g,change=straight_frontage(g,obstacles,frontage_surfaces,road,region,cfg['rules'].get('straight_frontage_clearance_m',1.0))
-  elif d['new_codes'] and d['feed'] and d['id'] in scopes.get('earlier_joint',[d['id']]):
-   guide=shape(next(p['geometry'] for p in d['retained'] if p['code']==d['primary_code']))
-   g,change=earlier_joint_approach(g,d['feed']['xy'],obstacles,surfaces,region,road=road,guide=guide)
-  else:change=None
-  if change:data['trace_refinements'].append(dict(change,direction=d['id']))
-  masters[d['id']]=g
- # Existing source contacts may sit on adjacent old cables in the same street.
- # Canonicalise close, forward-running guides to ONE generated trench axis.
- canonical=[];snap_distance=max(.8,cfg['rules']['lane_pitch_m']*(len(masters)-1)+.2)
- for name,g in sorted(masters.items(),key=lambda item:ordering_lengths[item[0]],reverse=True):
-  for axis in canonical:
-   original=list(g.coords);positions=[g.project(Point(p)) for p in original];projected=[];good=[]
-   for p,at in zip(original,positions):
-    point=Point(p);q=axis.project(point);near=axis.interpolate(q);a0=axis.interpolate(max(0,q-8));a1=axis.interpolate(min(axis.length,q+8));b0=g.interpolate(max(0,at-8));b1=g.interpolate(min(g.length,at+8));u=(a1.x-a0.x,a1.y-a0.y);v=(b1.x-b0.x,b1.y-b0.y);den=math.hypot(*u)*math.hypot(*v);cos=(u[0]*v[0]+u[1]*v[1])/den if den else 0;projected.append(q);good.append(point.distance(near)<=snap_distance and cos>.7)
-   points=[];i=0
-   while i<len(original):
-    j=i
-    if good[i]:
-     while j+1<len(original) and good[j+1] and projected[j+1]>=projected[j]-.01:j+=1
-    if j>i and projected[j]-projected[i]>5:
-     replacement=list(substring(axis,projected[i],projected[j]).coords);i=j+1
-    else:replacement=[original[i]];i+=1
-    for p in replacement:
-     if not points or math.dist(points[-1],p)>.001:points.append(p)
-   candidate=LineString(points)
-   if candidate.intersection(obstacles).length<=g.intersection(obstacles).length+1e-6:g=candidate
-  masters[name]=g;canonical.append(g)
- display={};pitch=cfg['rules']['lane_pitch_m'];ordered=data['directions'];count=len(ordered)
- for rank,d in enumerate(ordered):
-  original=masters[d['id']];g=original
-  lane=g.offset_curve((rank-(count-1)/2)*pitch,join_style=2,mitre_limit=2)
-  if lane.geom_type!='LineString':lane=max(lane.geoms,key=lambda p:p.length)
-  # All original points for retained joins are independent source-derived coordinates.
-  if d['feed'] and not d['new_codes']:
-   points=list(lane.coords);points[-1]=tuple(d['feed']['xy']);lane=LineString(points)
-  display[d['id']]=lane
- from vo_bundel import repair_bundle,straight_road_crossings
- road=unary_union([shape(f['geometry']) for f in active_features('wegdeel') if f['properties'].get('functie')=='rijbaan lokale weg'])
- display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
- from vo_oversteken import crossing_sites,perpendicular_crossings
- def retained_obstacles(name):
-  own=next(d for d in ordered if d['id']==name)
-  return unary_union([shape(p['geometry']).difference(Point(own['feed']['xy']).buffer(.2)) if d['id']==name and own['feed'] else shape(p['geometry']) for d in ordered for p in d['retained']])
- sites=crossing_sites(display,road,pitch);data['crossing_sites']=sites;data['perpendicular_crossing_changes']=[]
- for name,g in display.items():
-  display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
- retained_lines={f'OLD_{d["id"]}_{i}':shape(p['geometry']) for d in ordered for i,p in enumerate(d['retained'])};fixed=set(retained_lines)
- ignored={frozenset([a,b]) for a,b in itertools.combinations(fixed,2)}|{frozenset([d['id'],name]) for d in ordered for name in fixed if name.startswith('OLD_'+d['id']+'_')}
- anchors={d['id']:[d['feed']['xy']] for d in ordered if d['feed']}
- joined,bundle_repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored,anchors)
- display={name:joined[name] for name in display}
- display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
- for name,g in display.items():
-  display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
- # Road normalisation can change joins outside the carriageway. Resolve any
- # resulting bundle conflicts and restore the common 90-degree crossing plane.
- for iteration in range(5):
-  from vo_bundel import crossing_pairs
-  if not crossing_pairs(dict(display,**retained_lines),station_box,ignored):break
-  joined,repairs=repair_bundle(dict(display,**retained_lines),pitch,station_box,obstacles,fixed,ignored,anchors)
-  if not repairs:break
-  bundle_repairs+=repairs;display={name:joined[name] for name in display}
+ ordered=data['directions'];pitch=cfg['rules']['lane_pitch_m'];previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
+ from vo_kabelafwerking import supplemental_work,draw_supplemental,apply_cable_style,restore_source_xrefs
+ if data.get('prepared_geometry_source'):
+  if data.get('reference_used_in_generator') is not False:raise ValueError('Alleen eigen brongeometrie mag worden hervat')
+  display={name:shape(g) for name,g in data['pre_station_lines'].items()}
+  if data.get('prepared_geometry_stage')=='before_shared_offsets':
+   from vo_gedeelde_offsets import shared_offsets
+   display,shared_rows=shared_offsets(display,ordered,obstacles,region,pitch);data['shared_offset_failures']=[r for r in shared_rows if r.get('rejected')];data['shared_offset_rebuild']=[r for r in shared_rows if not r.get('rejected')]
+   data.pop('prepared_geometry_stage',None)
+  data.setdefault('shared_offset_failures',[]).extend(r for r in data.get('shared_offset_rebuild',[]) if r.get('rejected'))
+  data['shared_offset_rebuild']=[r for r in data.get('shared_offset_rebuild',[]) if not r.get('rejected')]
+ else:
+  # Simplify each physical main, retaining street corners. House leads are not drawn.
+  masters={d['id']:shape(max(d['new_paths'],key=lambda p:shape(p).length)) for d in data['directions']}
+  # One simplification per shared backbone chain prevents small independent
+  # simplification differences from turning parallel wires into crossings.
+  trie={'point':None,'children':{},'terminal':set()}
+  for name,g in masters.items():
+   node=trie
+   for p in g.coords:
+    key=tuple(round(float(v),5) for v in p[:2]);node=node['children'].setdefault(key,{'point':key,'children':{},'terminal':set()})
+   node['terminal'].add(name)
+  rebuilt={}
+  def rebuild(node,prefix):
+   points=[node['point']]
+   while len(node['children'])==1 and not node['terminal']:
+    node=next(iter(node['children'].values()));points.append(node['point'])
+   g=LineString(points).simplify(cfg['rules'].get('drawing_simplification_m',.45)) if len(points)>1 else None
+   if g is not None and g.intersects(obstacles):g=LineString(points)
+   if cfg['rules'].get('drawing_simplification_mode')=='visibility' and g is not None:g=straighten(LineString(points),obstacles.buffer(.7),cfg['rules'].get('drawing_simplification_m',.9))
+   result=prefix+(list(g.coords)[1:] if prefix and g is not None else list(g.coords) if g is not None else points)
+   for name in node['terminal']:rebuilt[name]=LineString(result)
+   for child in node['children'].values():rebuild(child,result+[child['point']])
+  for child in trie['children'].values():rebuild(child,[])
+  masters=rebuilt
+  ordering_lengths={d['id']:d.get('layout_priority_length_m',masters[d['id']].length) for d in data['directions']}
+  from vo_trace_verfijnen import straight_frontage,earlier_joint_approach
+  roads=active_features('wegdeel');road=unary_union([shape(f['geometry']) for f in roads if f['properties'].get('functie')=='rijbaan lokale weg']).difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+  from vo_terrein import vegetation_class
+  surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel')]+[station_box])
+  frontage_surfaces=unary_union([shape(f['geometry']) for f in roads]+[shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='open_green']+[shape(f['geometry']) for f in active_features('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')!='erf']+[station_box])
+  data['trace_refinements']=[]
+  for d in data['directions']:
+   g=masters[d['id']]
+   scopes=cfg['rules'].get('refinement_scope',{})
+   if not d['feed'] and d['id'] in scopes.get('straight_frontage',[d['id']]):
+    g,change=straight_frontage(g,obstacles,frontage_surfaces,road,region,cfg['rules'].get('straight_frontage_clearance_m',1.0))
+   elif d['new_codes'] and d['feed'] and d['id'] in scopes.get('earlier_joint',[d['id']]):
+    guide=shape(next(p['geometry'] for p in d['retained'] if p['code']==d['primary_code']))
+    g,change=earlier_joint_approach(g,d['feed']['xy'],obstacles,surfaces,region,road=road,guide=guide)
+   else:change=None
+   if change:data['trace_refinements'].append(dict(change,direction=d['id']))
+   masters[d['id']]=g
+  # Existing source contacts may sit on adjacent old cables in the same street.
+  # Canonicalise close, forward-running guides to ONE generated trench axis.
+  canonical=[];snap_distance=max(3,cfg['rules']['lane_pitch_m']*(len(masters)-1)+.8)
+  primary_mains={d['id'] for d in ordered if not d.get('feed') and d['new_codes']}
+  for name,g in sorted(masters.items(),key=lambda item:(item[0] in primary_mains,ordering_lengths[item[0]]),reverse=True):
+   for axis in canonical:
+    original=list(g.coords);positions=[g.project(Point(p)) for p in original];projected=[];good=[]
+    for p,at in zip(original,positions):
+     point=Point(p);q=axis.project(point);near=axis.interpolate(q);a0=axis.interpolate(max(0,q-8));a1=axis.interpolate(min(axis.length,q+8));b0=g.interpolate(max(0,at-8));b1=g.interpolate(min(g.length,at+8));u=(a1.x-a0.x,a1.y-a0.y);v=(b1.x-b0.x,b1.y-b0.y);den=math.hypot(*u)*math.hypot(*v);cos=(u[0]*v[0]+u[1]*v[1])/den if den else 0;projected.append(q);good.append(point.distance(near)<=snap_distance and cos>.7)
+    points=[];i=0
+    while i<len(original):
+     j=i
+     if good[i]:
+      while j+1<len(original) and good[j+1] and projected[j+1]>=projected[j]-.01:j+=1
+     if j>i and projected[j]-projected[i]>5:
+      replacement=list(substring(axis,projected[i],projected[j]).coords);i=j+1
+     else:replacement=[original[i]];i+=1
+     for p in replacement:
+      if not points or math.dist(points[-1],p)>.001:points.append(p)
+    candidate=LineString(points)
+    if candidate.intersection(obstacles).length<=g.intersection(obstacles).length+1e-6:g=candidate
+   masters[name]=g;canonical.append(g)
+  display={};pitch=cfg['rules']['lane_pitch_m'];ordered=data['directions'];count=len(ordered)
+  for rank,d in enumerate(ordered):
+   original=masters[d['id']];g=original
+   lane=g.offset_curve((rank-(count-1)/2)*pitch,join_style=2,mitre_limit=2)
+   if lane.geom_type!='LineString':lane=max(lane.geoms,key=lambda p:p.length)
+   # All original points for retained joins are independent source-derived coordinates.
+   if d['feed'] and not d['new_codes']:
+    points=list(lane.coords);points[-1]=tuple(d['feed']['xy']);lane=LineString(points)
+   display[d['id']]=lane
+  from vo_bundel import repair_bundle,straight_road_crossings
+  road=unary_union([shape(f['geometry']) for f in active_features('wegdeel') if f['properties'].get('functie')=='rijbaan lokale weg']).difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+  display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
+  from vo_oversteken import crossing_sites,perpendicular_crossings
+  def retained_obstacles(name):
+   own=next(d for d in ordered if d['id']==name)
+   return unary_union([shape(p['geometry']).difference(Point(own['feed']['xy']).buffer(.2)) if d['id']==name and own['feed'] else shape(p['geometry']) for d in ordered for p in d['retained']])
+  sites=crossing_sites(display,road,pitch);data['crossing_sites']=sites;data['perpendicular_crossing_changes']=[]
   for name,g in display.items():
    display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
- data['bundle_repairs']=bundle_repairs
- from vo_bundel import separate_free_ends
- display,data['free_end_adjustments']=separate_free_ends(display,ordered,pitch)
- from vo_rechte_straat import straighten_street_bundle
- data['straight_street_bundles']=[]
- for names in cfg['rules'].get('straight_bundle_groups',[]):
-  lane_surfaces=surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));lane_road=road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));tree_points=[shape(f['geometry']) for f in active_features('vegetatieobject_punt')]
-  display,change=straighten_street_bundle(display,names,obstacles,lane_surfaces,lane_road,region,pitch,tree_points,anchors)
-  if change:data['straight_street_bundles'].append(change)
-  for name,g in display.items():display[name],_=perpendicular_crossings(g,lane_road,obstacles,region,name,sites,retained_obstacles(name))
- previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
- from vo_kabelafwerking import splice_after_crossing,supplemental_work,draw_supplemental,apply_cable_style,restore_source_xrefs
- data['splice_after_crossing_changes']=[]
- for d in ordered:
-  if d['id'] not in cfg['rules'].get('splice_after_crossing',[]):continue
-  display[d['id']],change=splice_after_crossing(d,display[d['id']],original_chains[d['primary_code']],road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles)
-  if not change:raise ValueError('AM niet veilig direct na haakse oversteek geplaatst: '+d['id'])
-  data['splice_after_crossing_changes'].append(change)
- for d in ordered:
-  if d['id'] not in cfg['rules'].get('straight_frontage_house_side',[]):continue
-  display[d['id']],change=straight_frontage(display[d['id']],obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,margin=.3,house_points=[Point(r['xy']) for r in d['records']],other_lines=[g for n,g in display.items() if n!=d['id']])
-  if not change:raise ValueError('Geen veilig recht tracé aan huizenzijde: '+d['id'])
-  data.setdefault('house_side_frontage_changes',[]).append(dict(change,direction=d['id']))
- from vo_kabelafwerking import extend_past_last_connection
- data['connection_end_extensions']=[]
- for d in ordered:
-  if d['id'] not in cfg['rules'].get('extend_past_last_connection',[x['id'] for x in ordered if not x.get('feed')]):continue
-  display[d['id']],change=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
-  if change:data['connection_end_extensions'].append(change)
- from vo_gedeelde_offsets import shared_offsets
- display,data['shared_offset_rebuild']=shared_offsets(display,ordered,obstacles,region,pitch)
- for d in ordered:
-  if not d.get('feed'):display[d['id']],_=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
- from vo_gedeelde_oversteek import merge_nearby_crossings
- display,_=merge_nearby_crossings(data,display,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,pitch)
- for d in ordered:d['display_main']=display[d['id']].__geo_interface__
+  retained_lines={f'OLD_{d["id"]}_{i}':shape(p['geometry']) for d in ordered for i,p in enumerate(d['retained'])};fixed=set(retained_lines)
+  ignored={frozenset([a,b]) for a,b in itertools.combinations(fixed,2)}|{frozenset([d['id'],name]) for d in ordered for name in fixed if name.startswith('OLD_'+d['id']+'_')}
+  anchors={d['id']:[d['feed']['xy']] for d in ordered if d['feed']}
+  repair_excluded=station_box.buffer(cfg['rules'].get('station_exit_join_m',16))
+  joined,bundle_repairs=repair_bundle(dict(display,**retained_lines),pitch,repair_excluded,obstacles,fixed,ignored,anchors)
+  display={name:joined[name] for name in display}
+  display={name:straight_road_crossings(g,road,obstacles) for name,g in display.items()}
+  for name,g in display.items():
+   display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
+  # Road normalisation can change joins outside the carriageway. Resolve any
+  # resulting bundle conflicts and restore the common 90-degree crossing plane.
+  for iteration in range(5):
+   from vo_bundel import crossing_pairs
+   if not crossing_pairs(dict(display,**retained_lines),repair_excluded,ignored):break
+   joined,repairs=repair_bundle(dict(display,**retained_lines),pitch,repair_excluded,obstacles,fixed,ignored,anchors)
+   if not repairs:break
+   bundle_repairs+=repairs;display={name:joined[name] for name in display}
+   for name,g in display.items():
+    display[name],changes=perpendicular_crossings(g,road,obstacles,region,name,sites,retained_obstacles(name));data['perpendicular_crossing_changes']+=changes
+  data['bundle_repairs']=bundle_repairs
+  from vo_bundel import separate_free_ends
+  display,data['free_end_adjustments']=separate_free_ends(display,ordered,pitch)
+  from vo_rechte_straat import straighten_street_bundle
+  data['straight_street_bundles']=[]
+  for names in cfg['rules'].get('straight_bundle_groups',[]):
+   lane_surfaces=surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));lane_road=road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)));tree_points=[shape(f['geometry']) for f in active_features('vegetatieobject_punt')]
+   display,change=straighten_street_bundle(display,names,obstacles,lane_surfaces,lane_road,region,pitch,tree_points,anchors)
+   if change:data['straight_street_bundles'].append(change)
+   for name,g in display.items():display[name],_=perpendicular_crossings(g,lane_road,obstacles,region,name,sites,retained_obstacles(name))
+  previous_retained={d['id']:copy.deepcopy(d['retained']) for d in ordered}
+  from vo_kabelafwerking import splice_after_crossing,supplemental_work,draw_supplemental,apply_cable_style,restore_source_xrefs
+  data['splice_after_crossing_changes']=[]
+  for d in ordered:
+   if d['id'] not in cfg['rules'].get('splice_after_crossing',[]):continue
+   display[d['id']],change=splice_after_crossing(d,display[d['id']],original_chains[d['primary_code']],road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles)
+   if not change:raise ValueError('AM niet veilig direct na haakse oversteek geplaatst: '+d['id'])
+   data['splice_after_crossing_changes'].append(change)
+  for d in ordered:
+   if d['id'] not in cfg['rules'].get('straight_frontage_house_side',[]):continue
+   display[d['id']],change=straight_frontage(display[d['id']],obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,margin=.3,house_points=[Point(r['xy']) for r in d['records']],other_lines=[g for n,g in display.items() if n!=d['id']])
+   if not change:raise ValueError('Geen veilig recht tracé aan huizenzijde: '+d['id'])
+   data.setdefault('house_side_frontage_changes',[]).append(dict(change,direction=d['id']))
+  from vo_kabelafwerking import extend_past_last_connection
+  data['connection_end_extensions']=[]
+  for d in ordered:
+   if d['id'] not in cfg['rules'].get('extend_past_last_connection',[x['id'] for x in ordered if not x.get('feed')]):continue
+   display[d['id']],change=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
+   if change:data['connection_end_extensions'].append(change)
+  from vo_gedeelde_offsets import shared_offsets
+  data['pre_station_lines']={name:g.__geo_interface__ for name,g in display.items()}
+  Path(out).mkdir(exist_ok=True);Path(out,'Bundel voor gedeelde offsets.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8')
+  display,shared_rows=shared_offsets(display,ordered,obstacles,region,pitch)
+  data['shared_offset_failures']=[r for r in shared_rows if r.get('rejected')];data['shared_offset_rebuild']=[r for r in shared_rows if not r.get('rejected')]
+  for d in ordered:
+   if not d.get('feed'):display[d['id']],_=extend_past_last_connection(d,display[d['id']],cfg['rules'].get('connection_end_clearance_m',.6))
+  from vo_gedeelde_oversteek import merge_nearby_crossings
+  display,_=merge_nearby_crossings(data,display,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,pitch)
+  for d in ordered:d['display_main']=display[d['id']].__geo_interface__
  from vo_stationsuitloop import build_station_exit,draw_tamps
- display=build_station_exit(data,doc,obstacles,surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))),region,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))));ordered=data['directions'];cfg=data['config']
- data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains)
+ data['pre_station_lines']={name:g.__geo_interface__ for name,g in display.items()}
+ for d in ordered:d['display_main']=display[d['id']].__geo_interface__
+ coverage=unary_union([shape(f['geometry']) for name in ['wegdeel','begroeidterreindeel','onbegroeidterreindeel','pand'] for f in active_features(name)])
+ unmapped_access=station_box.buffer(8).intersection(region).difference(coverage).difference(obstacles)
+ exit_surfaces=surfaces.union(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))
+ confirmed_access=cfg.get('source_station_access',{}).get('confirmed_open')
+ if confirmed_access or cfg['rules'].get('draft_unmapped_station_access'):exit_surfaces=exit_surfaces.union(unmapped_access)
+ try:display=build_station_exit(data,doc,obstacles,exit_surfaces,region,road.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0))))
+ except ValueError:
+  Path(out).mkdir(exist_ok=True);Path(out,'Geometrie voor stationsuitloop.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');raise
+ ordered=data['directions'];cfg=data['config']
+ data['station_ground_coverage_questions']=[];data['station_ground_coverage_project_evidence']=[]
+ for d in ordered:
+  gap=substring(display[d['id']],0,d['station_exit_protected_m']).intersection(unmapped_access)
+  if gap.length>.01:
+   row={'direction':d['id'],'length_m':gap.length,'geometry':gap.__geo_interface__,'question':'BGT ontbreekt bij stationsaanloop; ondergrond en toegang bevestigen voordat deze conceptuitloop wordt vrijgegeven'}
+   if confirmed_access:row['project_source']=cfg['source_station_access'];data['station_ground_coverage_project_evidence'].append(row)
+   else:data['station_ground_coverage_questions'].append(row)
+ data['splice_contact_adjustments']=align_splice_contacts(ordered,display,original_chains,obstacles=obstacles,region=region)
+ from vo_oversteken import crossing_sites
+ data['crossing_sites']=crossing_sites(display,road,pitch)
  for d in ordered:
   lane=display[d['id']];line(lane,d['layer']);d['display_main']=lane.__geo_interface__;d['display_main_length_m']=lane.length
   for r in d['records']:
@@ -196,9 +234,13 @@ def draw_source_design(data,out):
  for d in ordered:
   layer=d['layer'];g=display[d['id']];feed=d['feed'];ends=[];d['existing_end_mofs']=[];d['retained_end_work']=[]
   if feed:
-   p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind=d['splice_kind'];retained_type=next(part['type'] for part in d['retained'] if part['code']==d['primary_code']);text(kind+' 150Al->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
+   from vo_materialen import contact_material,source_notation
+   p=feed['xy'];symbol('MOF bestaand-nieuw',p,layer);kind=d['splice_kind'];contact=contact_material(next(part for part in d['retained'] if part['code']==d['primary_code']),feed['position_m']);retained_type=source_notation(d['primary_code'],contact['type'],contact['combo'],p,data.get('material_evidence',{}));d['new_cable_label']='150Al+' if contact['combo'] else '150Al';text(kind+' '+d['new_cable_label']+'->'+retained_type+' (was '+d['primary_code'][3:]+')',(p[0]+1.0,p[1]+1.0),layer,.7)
    for part in d['retained']:
-    rg=shape(part['geometry']);line(rg,'01 - Bestaande kabel')
+    from vo_materialen import drawing_parts
+    rg=shape(part['geometry'])
+    for material in drawing_parts(part,original_chains[part['code']]):
+     mg=material['geometry'] if hasattr(material['geometry'],'geom_type') else shape(material['geometry']);line(mg,'01 - Bestaande kabel');midpoint=mg.interpolate(.5,normalized=True);a,b=mg.coords[0],mg.coords[-1];angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;notation=source_notation(part['code'],material['type'],material.get('combo',False),list(midpoint.coords)[0],data.get('material_evidence',{}));text(notation+' / (was '+part['code'][3:]+')',(midpoint.x+.6,midpoint.y+.6),'01 - Bestaande kabel',.75,angle)
     for p in [rg.coords[0],rg.coords[-1]]:
      if math.dist(p,feed['xy'])<1.0:continue
      if any(other is not part and shape(other['geometry']).distance(Point(p))<.05 for other in d['retained']):continue
@@ -207,7 +249,6 @@ def draw_source_design(data,out):
      if not status['new_required']:
       symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');text('Bestaand',(p[0]+.8,p[1]+.8),'01 - Bestaande kabel',.7);d['existing_end_mofs'].append(dict(status,code=part['code'],xy=list(p)));continue
      symbol('NIEUWE MOF',p,layer);text('EM (was '+part['code'][3:]+')',(p[0]+.8,p[1]+.8),layer,.7);ends.append(list(p))
-    midpoint=rg.interpolate(.5,normalized=True);a,b=rg.coords[0],rg.coords[-1];angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;text(part['type']+' / (was '+part['code'][3:]+')',(midpoint.x+.6,midpoint.y+.6),'01 - Bestaande kabel',.75,angle)
   if d['new_codes']:
    endpoint=g.coords[-1];symbol('NIEUWE MOF',endpoint,layer);text('EM',(endpoint[0]+.8,endpoint[1]+.8),layer,.7);ends.append(list(endpoint))
   d['end_mof_positions']=ends
@@ -226,8 +267,21 @@ def draw_source_design(data,out):
   longest=max(zip(g.coords[:-1],g.coords[1:]),key=lambda p:math.dist(*p));a,b=longest;angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]));angle=angle if -90<=angle<=90 else angle+180;mid=((a[0]+b[0])/2,(a[1]+b[1])/2);label=d.get('new_cable_label','150Al')+' / ????-00';text(label,(mid[0]+1.0,mid[1]+1.0),layer,.75,angle)
   p=g.interpolate(.8,normalized=True);text(dec(d['load_A'],1)+'Amp.',(p.x+1,p.y+2),layer);text(dec(d['limiting']['length_m'],2)+'Met.',(p.x+1,p.y+.9),layer)
  supplemental_work(data,all_source_joints,doc,previous_parts=previous_retained);draw_supplemental(data,symbol,text,line)
+ # Also retain actual intermediate source joints within one cable code.
+ # Material/WFS segmentation alone never invents a physical mof.
+ existing_drawn=[tuple(bbox.extents([e]).center)[:2] for e in generated if e.dxftype()=='INSERT' and 'MOF' in symbol_types.get(e.dxf.handle,'').upper()]
+ for d in ordered:
+  for source_joint in all_source_joints:
+   if source_joint['kind']!='branch':continue
+   oldpoint=Point(source_joint['xy']);parts=[shape(p['geometry']) for p in d['retained'] if shape(p['geometry']).distance(oldpoint)<.1]
+   if not parts:continue
+   cable=min(parts,key=lambda g:g.distance(oldpoint));at=cable.project(oldpoint)
+   if min(at,cable.length-at)<.1:continue
+   p=cable.interpolate(at).coords[0][:2]
+   if any(math.dist(p,v)<.15 for v in existing_drawn):continue
+   symbol('BESTAANDE MOF',p,'01 - Bestaande kabel');text('Bestaand',(p[0]+.8,p[1]+.8),'01 - Bestaande kabel',.7);existing_drawn.append(p);d['existing_branch_mofs'].append({'xy':list(p),'source_joint':source_joint,'intermediate_source_joint':True})
  draw_tamps(data,doc,symbol,text,line)
- data['obsolete_end_cleanup']=clean_obsolete_end_annotations(doc,ordered,region,original_chains)
+ data['obsolete_end_cleanup']=[] # Fresh empty target: native end markers belong to neighbours.
  # Place the RT legend by empty-space scoring, not a reference coordinate.
  occupied=unary_union([g.buffer(2) for g in display.values()]+[Point(r['xy']).buffer(2) for r in data['connections']]);cx,cy=station.center.x,station.center.y;bounds=region.bounds;candidates=[]
  for x in range(math.ceil(bounds[0])+10,math.floor(bounds[2])-10,4):
@@ -259,11 +313,12 @@ def draw_source_design(data,out):
  for (a,g),(b,h) in itertools.combinations(network.items(),2):
   q=g.intersection(h).difference(station_box)
   if not q.is_empty:crossings.append({'a':a,'b':b,'geometry':q.__geo_interface__})
- cable_style=apply_cable_style(doc,new_layers=[d['layer'] for d in ordered]+[r['layer'] for r in data.get('station_tamps',[])])
+ new_layers={d['layer'] for d in ordered}|{r['layer'] for r in data.get('station_tamps',[])};owned_handles={e.dxf.handle for e in generated};new_cables={e.dxf.handle for e in generated if e.dxftype()=='LWPOLYLINE' and e.dxf.layer in new_layers};cable_style=apply_cable_style(doc,new_handles=new_cables,scope_handles=owned_handles)
  doc.header['$INSUNITS']=6;doc.set_modelspace_vport(height=360,center=region.centroid.coords[0]);audit=doc.audit();out=Path(out);out.mkdir(exist_ok=True);file=out/(cfg['station_id']+' - LS VO uit brongegevens.dxf');doc.saveas(file)
  restore_source_xrefs(doc,data);doc.saveas(file)
  data['drawing']={'file':str(file),'crossings':crossings,'self_crossings':[n for n,g in display.items() if not g.is_simple],'legend_center':[x,y],'audit_errors':len(ezdxf.readfile(file).audit().errors),'unresolved_original_xrefs':unresolved,'new_model_entities':len(generated),'reference_file_used':False}
  data['drawing']['new_entity_handles']=[e.dxf.handle for e in generated];data['drawing']['symbol_types']=symbol_types;data['drawing']['cable_style']=cable_style
+ (out/'Ontwerp vóór annotaties.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8')
  from vo_annotaties import apply_annotation_layout
  apply_annotation_layout(doc,data)
  from vo_afzekeringsblok import apply_fuse_legend
@@ -271,3 +326,4 @@ def draw_source_design(data,out):
  from vo_tekst_en_draworder import apply_text_layout
  apply_text_layout(doc,data);doc.saveas(file)
  (out/'Ontwerp met CAD-controle.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf8');return data
+

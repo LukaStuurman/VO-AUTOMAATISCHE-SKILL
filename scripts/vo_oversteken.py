@@ -30,23 +30,25 @@ def crossing_angle(crossing,road,axis=None):
 
 def crossing_sites(lines,road,pitch=.2):
  from shapely.geometry import Point
+ road=road.buffer(-.000001)
  groups=[]
  for name,line in lines.items():
   q=line.intersection(road);parts=list(q.geoms) if hasattr(q,'geoms') else [q]
   for p in parts:
    if p.geom_type!='LineString' or p.length<1:continue
-   mid=p.interpolate(.5,normalized=True);group=next((g for g in groups if g[0][2].distance(mid)<3),None)
+   mid=p.interpolate(.5,normalized=True);local_axis=road_axis(p,road);group=next((g for g in groups if g[0][2].distance(mid)<3 and name not in {row[0] for row in g} and abs(sum(a*b for a,b in zip(g[0][3],local_axis)))>.98),None)
    if group is None:group=[];groups.append(group)
-   group.append((name,p,mid,road_axis(p,road)))
+   group.append((name,p,mid,local_axis))
  sites=[]
  for i,group in enumerate(groups):
   ref=group[0][3];vectors=[u if u[0]*ref[0]+u[1]*ref[1]>=0 else (-u[0],-u[1]) for _,_,_,u in group];x=sum(u[0] for u in vectors);y=sum(u[1] for u in vectors);L=math.hypot(x,y);u=(x/L,y/L);mid=Point(sum(p.x for _,_,p,_ in group)/len(group),sum(p.y for _,_,p,_ in group)/len(group));ordered=sorted(group,key=lambda item:(item[2].x-mid.x)*u[0]+(item[2].y-mid.y)*u[1]);centres={name:[mid.x+u[0]*(rank-(len(group)-1)/2)*pitch,mid.y+u[1]*(rank-(len(group)-1)/2)*pitch] for rank,(name,_,_,_) in enumerate(ordered)}
   sites.append({'id':f'oversteek-{i+1}','xy':[mid.x,mid.y],'road_axis':list(u),'lane_centres':centres})
  return sites
 
-def perpendicular_crossings(line,road,obstacles,region=None,name=None,sites=None,retained=None):
+def perpendicular_crossings(line,road,obstacles,region=None,name=None,sites=None,retained=None,surfaces=None):
  from shapely.geometry import LineString,Point
  from shapely.ops import substring
+ road=road.buffer(-.000001)
  q=line.intersection(road);parts=list(q.geoms) if hasattr(q,'geoms') else [q];changes=[];current=line
  for p in parts:
   if p.geom_type!='LineString' or p.length<1:continue
@@ -70,4 +72,20 @@ def perpendicular_crossings(line,road,obstacles,region=None,name=None,sites=None
    local=[g for g in segments if g.geom_type=='LineString' and g.distance(mid)<3 and g.length>1]
    if not local or any(crossing_angle(g,road,axis)<89.999 or g.hausdorff_distance(LineString([g.coords[0],g.coords[-1]]))>.02 for g in local):continue
    changes.append({'site':site['id'] if site else None,'before_angle_deg':crossing_angle(p,road,axis),'after_angle_deg':crossing_angle(local[0],road,axis),'outside_turn_margin_m':margin,'geometry':crossing.__geo_interface__});current=candidate;break
+  else:
+   # A valid perpendicular crossing may need a pavement corner on either
+   # bank. Do not reject it merely because a straight approach clips a garden.
+   if surfaces is None or region is None:continue
+   from vo_gedeelde_oversteek import sidewalk_connection
+   free=surfaces.buffer(.2).difference(road.buffer(.000001)).difference(obstacles.buffer(.02))
+   if retained is not None:free=free.difference(retained.buffer(.03))
+   for margin in [.35,.2,.1]:
+    pa=(a.x-v[0]*margin,a.y-v[1]*margin);pb=(b.x+v[0]*margin,b.y+v[1]*margin)
+    try:
+     incoming=sidewalk_connection(current.interpolate(before).coords[0],pa,free,region);outgoing=sidewalk_connection(pb,current.interpolate(after).coords[0],free,region)
+    except ValueError:continue
+    coords=list(substring(current,0,before).coords)+list(incoming.coords)[1:]+[pb]+list(outgoing.coords)[1:]+list(substring(current,after,current.length).coords)[1:];candidate=LineString(coords)
+    if not candidate.is_simple or candidate.intersection(obstacles).length>current.intersection(obstacles).length+.000001:continue
+    if retained is not None and candidate.intersection(retained).length>current.intersection(retained).length+.000001:continue
+    changes.append({'site':site['id'] if site else None,'before_angle_deg':crossing_angle(p,road,axis),'after_angle_deg':90,'outside_turn_margin_m':margin,'geometry':crossing.__geo_interface__,'pavement_approach':True});current=candidate;break
  return current,changes

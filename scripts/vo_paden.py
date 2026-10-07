@@ -3,6 +3,7 @@ from reken_richtingen import calculate_path,CATALOGUE
 
 def geometry_checks(d,main):
  from shapely.geometry import Point,shape
+ from vo_materialen import segments_between
  physical=[];last=[];coverage=[]
  def add(target,name,segments):
   if sum(s['length_m'] for s in segments)>.001:target.append({'id':name,'segments':segments})
@@ -20,14 +21,14 @@ def geometry_checks(d,main):
     joins=[d['parent_child_positions'][p['code']]['parent_position'] for p in d['retained'] if p['code']!=code];positions+=joins
     for side,end in [(-1,part['lo']),(1,part['hi'])]:
      values=[q for q in positions if (q-root)*side>=-.001];L=abs(end-root)
-     add(physical,code+f'-{side}',[segment('feed','150Al',feeder),segment('main',part['type'],L)])
-     if values:add(last,code+f'-last-{side}',[segment('feed','150Al',feeder),segment('main',part['type'],max(abs(q-root) for q in values))])
+     add(physical,code+f'-{side}',[segment('feed','150Al',feeder)]+segments_between(part,root,end,'main'))
+     if values:add(last,code+f'-last-{side}',[segment('feed','150Al',feeder)]+segments_between(part,root,max(values,key=lambda q:abs(q-root)),'main'))
    else:
     join=d['parent_child_positions'][code];g=shape(part['geometry']) if isinstance(part['geometry'],dict) else part['geometry'];branch_root=g.project(Point(join['xy']))+part['lo'];parent_length=abs(join['parent_position']-root)
     for side,end in [(-1,part['lo']),(1,part['hi'])]:
-     prefix=[segment('feed','150Al',feeder),segment('parent',parent['type'],parent_length)];L=abs(end-branch_root);values=[q for q in positions if (q-branch_root)*side>=-.001]
-     if L>.001:add(physical,code+f'-{side}',prefix+[segment('branch',part['type'],L)])
-     if values:add(last,code+f'-last-{side}',prefix+[segment('branch',part['type'],max(abs(q-branch_root) for q in values))])
+     prefix=[segment('feed','150Al',feeder)]+segments_between(parent,root,join['parent_position'],'parent');L=abs(end-branch_root);values=[q for q in positions if (q-branch_root)*side>=-.001]
+     if L>.001:add(physical,code+f'-{side}',prefix+segments_between(part,branch_root,end,'branch'))
+     if values:add(last,code+f'-last-{side}',prefix+segments_between(part,branch_root,max(values,key=lambda q:abs(q-branch_root)),'branch'))
    coverage.extend(r['id'] for r in records)
  def check(paths):
   checks=[calculate_path(p,d['profile'],CATALOGUE) for p in paths];limit=min(checks,key=lambda c:(c['max_fuse_A'],-c['Z_ohm']));return {'paths':paths,'checks':checks,'limiting':limit,'passes':d['load_A']<=limit['max_design_A']+1e-8}

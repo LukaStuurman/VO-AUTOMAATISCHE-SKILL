@@ -34,6 +34,7 @@ def apply_annotation_layout(doc,data):
  # Treat actual symbols, all current balls, cables and other annotations as
  # blockers. The first ball anchors the text; it is never moved to another house.
  blockers=[Point(r['xy']).buffer(1.15) for r in data['connections']]+[g.buffer(.3) for g in lines.values()]
+ blockers += [shape(p['geometry']).buffer(.3) for d in data['directions'] for p in d['retained']]
  for h in symbol_types:
   e=doc.entitydb.get(h)
   if e is None:continue

@@ -7,7 +7,7 @@ def allocation_order(config):
  allowed=set(config.get('direction_slots',ALLOCATION_ORDER));return [n for n in ALLOCATION_ORDER if n in allowed]
 
 def station_frame(station,lines):
- from shapely.geometry import Polygon,Point
+ from shapely.geometry import Polygon,Point,LineString
  from ezdxf import bbox
  rects=[]
  for e in station.virtual_entities():
@@ -20,15 +20,19 @@ def station_frame(station,lines):
  if outside is None:raise ValueError('Stationsuitloop heeft geen terreinroute.')
  for a,b in zip(coords[:-1],coords[1:]):
   length=math.dist(a,b);mid=((a[0]+b[0])/2,(a[1]+b[1])/2);normal=(mid[0]-center.x,mid[1]-center.y);norm=math.hypot(*normal);normal=(normal[0]/norm,normal[1]/norm);score=normal[0]*(outside[0]-mid[0])+normal[1]*(outside[1]-mid[1]);edges.append((length,score,a,b,mid,normal))
- longest=max(e[0] for e in edges);_,_,a,b,mid,normal=max((e for e in edges if e[0]>longest-.05),key=lambda e:e[1]);u=((b[0]-a[0])/longest,(b[1]-a[1])/longest)
- names=sorted(lines,key=lambda n:int(n[1:]));p,q=lines[names[0]].coords[0],lines[names[-1]].coords[0]
- if u[0]*(q[0]-p[0])+u[1]*(q[1]-p[1])<0:u=(-u[0],-u[1]);a,b=b,a
+ longest=max(e[0] for e in edges);eligible=[e for e in edges if e[0]>longest-.05];hinges=[Point(e.dxf.center.xy) for e in station.virtual_entities() if e.dxftype()=='ARC' and .5<e.dxf.radius<4]
+ if hinges:
+  _,_,a,b,mid,normal=min(eligible,key=lambda e:sum(LineString([e[2],e[3]]).distance(p) for p in hinges));front_basis='Deurhinges uit ARC-geometrie van stationsblok'
+ else:_,_,a,b,mid,normal=max(eligible,key=lambda e:e[1]);front_basis='Fallback: lange blokzijde naar bronaanloop'
+ u=((b[0]-a[0])/longest,(b[1]-a[1])/longest)
+ u=(-normal[1],normal[0])
+ if u[0]*(b[0]-a[0])+u[1]*(b[1]-a[1])<0:a,b=b,a
  perpendicular=(u[1],-u[0])
  if perpendicular[0]*normal[0]+perpendicular[1]*normal[1]<0:raise ValueError('Richtingnummers lopen tegengesteld aan het stationsfront.')
  normal=perpendicular
  # Positive CAD offset of the outward departure must point to increasing slots.
  if (-normal[1])*u[0]+normal[0]*u[1]<0:raise ValueError('Stationsposities lopen tegengesteld; controleer frontoriëntatie.')
- return {'front_center':list(mid),'front_a':list(a),'front_b':list(b),'port_axis':list(u),'outward_axis':list(normal),'body_geometry':body.__geo_interface__,'reference_direction':reference}
+ return {'front_center':list(mid),'front_a':list(a),'front_b':list(b),'port_axis':list(u),'outward_axis':list(normal),'body_geometry':body.__geo_interface__,'reference_direction':reference,'front_basis':front_basis}
 
 def build_station_exit(data,doc,obstacles=None,surfaces=None,region=None,road=None,_search=True):
  from shapely.geometry import shape,Point,LineString,box
@@ -38,27 +42,46 @@ def build_station_exit(data,doc,obstacles=None,surfaces=None,region=None,road=No
  if prior and all(math.dist(lines[n].coords[0],r['port_xy'])<.00001 and math.dist(lines[n].coords[1],r['first_corner_xy'])<.00001 for n,r in prior['active_ports'].items()):return lines
  if obstacles is not None and _search:
   import copy
-  original=copy.deepcopy(data);trials=sorted([(a,b) for a in [0,-.2,-.4,-.6,-.8,-1,-1.2] for b in [0,.2,.4,.6,.8,1,1.2]],key=lambda p:abs(p[0])+abs(p[1]))
-  for lateral,outward in trials:
-   candidate=copy.deepcopy(original);candidate['config']['rules']['station_corner_lateral_adjust_m']=lateral;candidate['config']['rules']['station_corner_outward_adjust_m']=outward
+  surface_buffer=surfaces.buffer(.2) if surfaces is not None else None
+  original=copy.deepcopy(data);failures={};default_straight=data['config']['rules'].get('station_straight_departure_m',1.8);trials=sorted([(a,b,t) for a in [0,-.2,.2,-.4,.4,-.6,.6,-.8,.8,-1,1,-1.2,1.2] for b in [0,.2,.4,.6,.8,1,1.2] for t in sorted(set([default_straight,1.6,1.5,1.4]))],key=lambda p:abs(p[0])+abs(p[1])+abs(p[2]-default_straight))
+  for lateral,outward,straight in trials:
+   candidate=copy.deepcopy(original);candidate['config']['rules']['station_corner_lateral_adjust_m']=lateral;candidate['config']['rules']['station_corner_outward_adjust_m']=outward;candidate['config']['rules']['station_straight_departure_m']=straight
    try:result=build_station_exit(candidate,doc,_search=False)
-   except ValueError:continue
-   paths=list(result.values())+[shape(r['geometry']) for r in candidate['station_tamps']]
+   except ValueError as error:failures[str(error)]=failures.get(str(error),0)+1;continue
+   heads={name:substring(g,0,next(d['station_exit_protected_m'] for d in candidate['directions'] if d['id']==name)) for name,g in result.items()}
+   original_heads={name:substring(lines[name],0,lines[name].project(Point(g.coords[-1]))) for name,g in heads.items()}
+   paths=list(heads.values())+[shape(r['geometry']) for r in candidate['station_tamps']]
    if any(g.intersects(obstacles) or (region is not None and not region.buffer(.2).covers(g)) for g in paths):continue
-   if surfaces is not None and any(g.difference(surfaces.buffer(.2)).length>lines[name].difference(surfaces.buffer(.2)).length+.01 for name,g in result.items()):continue
-   if road is not None and (any(g.intersection(road).length>lines[name].intersection(road).length+.01 for name,g in result.items()) or any(shape(r['geometry']).intersection(road).length>.01 for r in candidate['station_tamps'])):continue
+   if surface_buffer is not None and any(g.difference(surface_buffer).length>original_heads[name].difference(surface_buffer).length+.01 for name,g in heads.items()):continue
+   if road is not None and (any(g.intersection(road).length>original_heads[name].intersection(road).length+.01 for name,g in heads.items()) or any(shape(r['geometry']).intersection(road).length>.01 for r in candidate['station_tamps'])):continue
    data.clear();data.update(candidate);return result
-  raise ValueError('Geen boomvrije stationsuitloop met correcte poorten en tampen gevonden.')
- station=doc.entitydb[data['config']['station_handle']];frame=station_frame(station,lines);c=frame['front_center'];u=frame['port_axis'];normal=frame['outward_axis'];pitch=data['config']['rules']['lane_pitch_m'];straight=data['config']['rules'].get('station_straight_departure_m',1.8);cut=data['config']['rules'].get('station_exit_join_m',16);occupied={int(d['id'][1:]):d for d in data['directions']};left=[n for n in occupied if n<=6];right=[n for n in occupied if n>=7]
- if not left or not right:raise ValueError('Uitloop met één gebruikte bank vraagt een expliciete corridorbeoordeling.')
- bb=bbox.extents([station]);station_box=box(bb.extmin.x,bb.extmin.y,bb.extmax.x,bb.extmax.y);reference=lines[frame['reference_direction']];b=next(p for p in reference.coords if not station_box.covers(Point(p)));depth=(b[0]-c[0])*normal[0]+(b[1]-c[1])*normal[1];along=(b[0]-c[0])*u[0]+(b[1]-c[1])*u[1]
- if depth<straight+.2 or along<.5:raise ValueError('Geen bruikbare haakse stationscorridor met kort vertrekstuk.')
- along+=data['config']['rules'].get('station_corner_lateral_adjust_m',0);depth+=data['config']['rules'].get('station_corner_outward_adjust_m',0);corner=(c[0]+along*u[0]+depth*normal[0],c[1]+along*u[1]+depth*normal[1]);p=(c[0]+straight*normal[0],c[1]+straight*normal[1]);q=(p[0]+along*u[0],p[1]+along*u[1]);suffix=substring(reference,reference.project(Point(b)),min(reference.length,cut+10));spine=LineString([c,p,q,corner]+list(suffix.coords)[1:]);phase=min(3.5,spine.length-2);banks={};ports={};new_lines=dict(lines);join_points={}
- for bank,representative in [('left',max(left)),('right',min(right))]:
-  delta=(representative-6.5)*pitch;physical=spine.offset_curve(delta,join_style=2,mitre_limit=10);at=physical.project(spine.interpolate(phase));guide=lines['R'+str(representative)];join=guide.project(Point(b));tail=substring(guide,join,min(guide.length,cut+10));bank_axis=LineString(list(substring(physical,0,at).coords)+list(tail.coords));banks[bank]={'representative':representative,'geometry':bank_axis.__geo_interface__}
-  for slot in ([n for n in occupied if n<=6] if bank=='left' else [n for n in occupied if n>=7]):
-   name='R'+str(slot);old=lines[name];lane=bank_axis.offset_curve((slot-representative)*pitch,join_style=2,mitre_limit=10);old_join=old.project(guide.interpolate(join+2));target=old.interpolate(old_join);end=lane.project(target)
-   if lane.distance(target)>.001:raise ValueError('Stationsbank sluit niet exact aan op bestaande bundel: '+name)
+  raise ValueError('Geen boomvrije stationsuitloop met correcte poorten en tampen gevonden: '+str(failures))
+ station=doc.entitydb[data['config']['station_handle']];frame=station_frame(station,lines);c=frame['front_center'];u=frame['port_axis'];normal=frame['outward_axis'];pitch=data['config']['rules']['lane_pitch_m'];straight=data['config']['rules'].get('station_straight_departure_m',1.8);cut=data['config']['rules'].get('station_exit_join_m',16);occupied={int(d['id'][1:]):d for d in data['directions']}
+ bb=bbox.extents([station]);station_box=box(bb.extmin.x,bb.extmin.y,bb.extmax.x,bb.extmax.y)
+ def bearing(slot):
+  p=lines['R'+str(slot)].interpolate(min(12,lines['R'+str(slot)].length));return math.atan2((p.x-c[0])*u[0]+(p.y-c[1])*u[1],(p.x-c[0])*normal[0]+(p.y-c[1])*normal[1])
+ groups=[]
+ for slot in sorted(occupied):
+  if not groups or slot-groups[-1][-1]>1 or abs(bearing(slot)-bearing(groups[-1][-1]))>.45:groups.append([slot])
+  else:groups[-1].append(slot)
+ if len(groups)==1:
+  halfway=max(1,len(groups[0])//2);groups=[groups[0][:halfway],groups[0][halfway:]]
+ groups=[g for g in groups if g];banks={};ports={};new_lines=dict(lines);join_points={}
+ for index,members in enumerate(groups):
+  bank='left' if index==0 else 'right' if index==len(groups)-1 else 'middle_'+str(index);representative=members[len(members)//2];guide=lines['R'+str(representative)]
+  samples=[guide.interpolate(i*.5).coords[0] for i in range(1,int(min(guide.length,cut+10)/.5)+1)]
+  candidates=[p for p in samples if not station_box.covers(Point(p)) and abs((p[0]-c[0])*u[0]+(p[1]-c[1])*u[1])>=max(3,1.2+len(members)*pitch)]
+  if not candidates:raise ValueError('Geen bruikbare haakse stationscorridor met kort vertrekstuk.')
+  b=candidates[0];depth=(b[0]-c[0])*normal[0]+(b[1]-c[1])*normal[1];along=(b[0]-c[0])*u[0]+(b[1]-c[1])*u[1];along+=data['config']['rules'].get('station_corner_lateral_adjust_m',0);depth+=data['config']['rules'].get('station_corner_outward_adjust_m',0);corner=(c[0]+along*u[0]+depth*normal[0],c[1]+along*u[1]+depth*normal[1]);p=(c[0]+straight*normal[0],c[1]+straight*normal[1]);q=(p[0]+along*u[0],p[1]+along*u[1]);spine=LineString([c,p,q,corner]);phase=min(3.5,spine.length-.5)
+  delta=(representative-6.5)*pitch;physical=spine.offset_curve(delta,join_style=2,mitre_limit=10)
+  if physical.is_empty or physical.geom_type!='LineString':raise ValueError('Stationshoek te krap voor volledige bankoffset')
+  at=physical.project(spine.interpolate(phase));join=guide.project(Point(b));tail=substring(guide,join,min(guide.length,cut+10));bank_axis=LineString(list(substring(physical,0,at).coords)+list(tail.coords));banks[bank]={'representative':representative,'geometry':bank_axis.__geo_interface__,'slots':members}
+  for slot in members:
+   name='R'+str(slot);old=lines[name];lane=bank_axis.offset_curve((slot-representative)*pitch,join_style=2,mitre_limit=10)
+   joins=[old.project(guide.interpolate(join+extra)) for extra in [2,4,6,8,10,12,14,16,18] if join+extra<min(guide.length,cut+10)]
+   choices=[(at,old.interpolate(at)) for at in joins if lane.distance(old.interpolate(at))<=.001]
+   if not choices:raise ValueError('Stationsbank sluit niet exact aan op bestaande bundel: '+name+' (kleinste afstand '+str(min([lane.distance(old.interpolate(at)) for at in joins],default=-1))+')')
+   old_join,target=choices[0];end=lane.project(target)
    head=substring(lane,0,end);tail_line=substring(old,old_join,old.length);coords=list(head.coords)+list(tail_line.coords)[1:];new=LineString(coords)
    if not new.is_simple:raise ValueError('Stationsuitloop vormt lus: '+name)
    new_lines[name]=new;ports[name]={'slot':slot,'port_xy':list(new.coords[0]),'first_corner_xy':list(new.coords[1]),'straight_m':math.dist(new.coords[0],new.coords[1]),'bank':bank};occupied[slot]['station_exit_protected_m']=head.length+1;join_points[name]=head.length

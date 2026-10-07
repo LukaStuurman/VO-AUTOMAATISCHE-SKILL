@@ -42,7 +42,12 @@ def repair_bundle(lines,pitch,excluded,obstacles=None,fixed=None,ignored=None,an
     local_obstacles=obstacles.intersection(old.envelope.buffer(max_deviation+.1)) if obstacles is not None else None
     old_obstacle_length=old.intersection(local_obstacles).length if local_obstacles is not None else 0
     for margin in [2,4,8,12,20,40,80]:
-     lo=max(.01,min(positions)-margin);hi=min(old.length-.01,max(positions)+margin)
+     protected=0
+     if excluded.covers(Point(old.coords[0])):
+      root=old.intersection(excluded)
+      pieces=list(root.geoms) if hasattr(root,'geoms') else [root]
+      protected=max([old.project(Point(p)) for piece in pieces if piece.geom_type=='LineString' for p in piece.coords],default=0)
+     lo=max(.01,protected,min(positions)-margin);hi=min(old.length-.01,max(positions)+margin)
      if hi<=lo:continue
      start=old.interpolate(lo);end=old.interpolate(hi)
      for side in [sign*multiple for multiple in range(1,len(lines)+1) for sign in [-1,1]]:

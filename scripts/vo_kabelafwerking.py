@@ -4,11 +4,12 @@ import math,re
 def cable_layer(layer):
  return bool(re.match(r'LBK\d',layer) or layer=='01 - Bestaande kabel' or re.match(r'^K\d+.*kabel',layer,re.I) or ('E_LV_' in layer and 'CABLE' in layer and 'JOINT' not in layer))
 
-def apply_cable_style(doc,new_handles=(),new_layers=()):
+def apply_cable_style(doc,new_handles=(),new_layers=(),scope_handles=None):
  if 'DASHED' not in doc.linetypes:doc.linetypes.new('DASHED',dxfattribs={'description':'Dashed','pattern':[19.05,12.7,-6.35]})
  handles=set(new_handles);layers=set(new_layers);count=0;new_count=0
  for e in doc.modelspace().query('LWPOLYLINE POLYLINE'):
-  if not (cable_layer(e.dxf.layer) or e.dxf.layer in layers):continue
+  if scope_handles is not None and e.dxf.handle not in scope_handles:continue
+  if not (cable_layer(e.dxf.layer) or e.dxf.layer in layers or e.dxf.handle in handles):continue
   if e.dxftype()=='LWPOLYLINE':
    e.set_points([(p[0],p[1],0,0,p[4]) for p in e.get_points('xyseb')],format='xyseb');e.dxf.const_width=.1
   else:
@@ -16,7 +17,7 @@ def apply_cable_style(doc,new_handles=(),new_layers=()):
    for v in e.vertices:v.dxf.start_width=0;v.dxf.end_width=0
   count+=1
   if e.dxf.handle in handles or e.dxf.layer in layers or 'nieuwe kabel' in e.dxf.layer.lower():e.dxf.linetype='DASHED';e.dxf.ltscale=.0035;new_count+=1
- return {'cable_polylines':count,'new_cable_polylines':new_count,'global_width':.1,'new_linetype':'DASHED','new_linetype_scale':.0035}
+ return {'cable_polylines':count,'new_cable_polylines':new_count,'global_width':.1,'new_linetype':'DASHED','new_linetype_scale':.0035,'scoped_to_generated':scope_handles is not None}
 
 def supplemental_work(data,joints,host_doc,stub_length=.9,previous_parts=None):
  from shapely.geometry import shape,Point,LineString
@@ -77,9 +78,10 @@ def restore_source_xrefs(doc,data):
  import ezdxf,hashlib
  from pathlib import Path
  base=ezdxf.readfile(data['config']['base_dxf']);source={b.name:b.block.dxf.get('xref_path','') for b in base.blocks if b.block.dxf.flags&4};restored=[]
+ declared={str(Path(data['config'][k]).resolve()) for k in ['base_dxf','klic_dxf','topo_dxf'] if k in data['config']}
  for block in doc.blocks:
   if block.block.dxf.flags&4 and block.name in source:
-   block.block.dxf.xref_path=source[block.name];raw=Path(source[block.name]);restored.append({'block':block.name,'path':source[block.name],'sha256':hashlib.sha256(raw.read_bytes()).hexdigest() if raw.is_absolute() and raw.is_file() else None})
+   block.block.dxf.xref_path=source[block.name];raw=Path(source[block.name]);restored.append({'block':block.name,'path':source[block.name],'sha256':hashlib.sha256(raw.read_bytes()).hexdigest() if raw.is_absolute() and str(raw.resolve()) in declared and raw.is_file() else None,'external_content_read':str(raw.resolve()) in declared})
  data['config'].pop('klic_display_dxf',None);data.pop('klic_cable_style',None);data['klic_display_edits']=[];data['klic_display_reference']={'original_references':restored,'source_unchanged':True,'project_copy_used':False}
  return restored
 

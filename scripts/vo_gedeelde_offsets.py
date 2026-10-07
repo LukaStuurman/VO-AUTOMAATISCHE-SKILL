@@ -4,7 +4,8 @@ import math,itertools
 def shared_offsets(lines,directions,obstacles,region,pitch=.2,_secondary=True):
  from shapely.geometry import Point,LineString
  from shapely.ops import substring
- reference=max(lines,key=lambda n:lines[n].length);axis=lines[reference];order=[d['id'] for d in directions];result=dict(lines);log=[]
+ backbones=[d['id'] for d in directions if not d.get('feed') and d.get('new_codes')]
+ reference=max(backbones or list(lines),key=lambda n:lines[n].length);axis=lines[reference];order=[d['id'] for d in directions];result=dict(lines);log=[]
  for name,g in lines.items():
   if name==reference:continue
   delta=(order.index(name)-order.index(reference))*pitch;offset=axis.offset_curve(delta,join_style=2,mitre_limit=10)
@@ -23,7 +24,9 @@ def shared_offsets(lines,directions,obstacles,region,pitch=.2,_secondary=True):
   for run in runs:
    lo,qa=run[0];hi,qb=run[-1];pa=axis.interpolate(qa);pb=axis.interpolate(qb);oa=offset.project(pa);ob=offset.project(pb);middle=substring(offset,oa,ob)
    patch=LineString([tuple(g.interpolate(lo).coords[0])]+list(middle.coords)+[tuple(g.interpolate(hi).coords[0])])
-   if patch.intersects(obstacles) or not region.buffer(.2).covers(patch):raise ValueError('Exacte gedeelde offset raakt terreinobstakel: '+name)
+   if patch.intersects(obstacles) or not region.buffer(.2).covers(patch):
+    log.append({'direction':name,'reference':reference,'offset_m':delta,'pitch_m':pitch,'reference_interval_m':[qa,qb],'geometry':middle.__geo_interface__,'rejected':True,'reason':'Gedeelde offset kan hier niet zonder terreinobstakel worden opgebouwd'})
+    continue
    intervals.append((lo,hi,middle));log.append({'direction':name,'reference':reference,'offset_m':delta,'pitch_m':pitch,'reference_interval_m':[qa,qb],'geometry':middle.__geo_interface__})
   if intervals:
    coords=[];at=0
@@ -33,7 +36,10 @@ def shared_offsets(lines,directions,obstacles,region,pitch=.2,_secondary=True):
    for p in coords[1:]:
     if math.dist(clean[-1],p)>.000001:clean.append(p)
    candidate=LineString(clean)
-   if not candidate.is_simple:raise ValueError('Gedeelde offset maakt een lus: '+name)
+   if not candidate.is_simple:
+    for row in log:
+     if row['direction']==name:row.update(rejected=True,reason='Gedeelde offset kan hier niet zonder lus worden aangesloten')
+    continue
    result[name]=candidate
  if _secondary:
   pure=[d for d in directions if not d.get('feed')]

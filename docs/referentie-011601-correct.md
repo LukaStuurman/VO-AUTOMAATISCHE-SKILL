@@ -53,3 +53,4 @@ Het hulpmiddel reproduceert alle zeven afzekeringen en trafototalen. Zes gericht
 Dit valideert het rekenproces op de opgegeven paden. Volledige automatische tracégeneratie, alle mogelijke kabelpaden, eigendom en uitvoerbaarheid op nieuwe locaties zijn hiermee niet bewezen. De bron-DXF en werkmap zijn ongewijzigd; ze worden niet naar GitHub geüpload.
 
 Bronnen: `011.601 correct/VO-LS PILS Laarbeek Beek D.26936 - Fase 7.dxf` en `011.601 correct/011.601 kader ingevuld.xlsx`. Hashes in `references/011601-correct.json`. Enexis Kabelchecker commit `4009601e15fa4b1b6926380395132b0c1630ce21`, kader 2024 Eea-0205.K 1.0.
+

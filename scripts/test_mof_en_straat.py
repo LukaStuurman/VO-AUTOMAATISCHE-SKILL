@@ -2,6 +2,12 @@ import unittest,tempfile,json
 from pathlib import Path
 
 class MofEnStraat(unittest.TestCase):
+ def test_first_safe_contact_stops_new_cable_before_return_to_old_mof(self):
+  from shapely.geometry import LineString,shape
+  from vo_mofverbindingen import align_splice_contacts
+  old=LineString([(5,0),(5,10)]);main=LineString([(0,1),(6,1),(6,0),(5,0)]);d={'id':'R2','primary_code':'MAIN','new_codes':[],'feed':{'xy':[5,0],'position_m':0},'retained':[{'code':'MAIN','lo':0,'hi':10,'geometry':old.__geo_interface__}],'records':[{'id':'house','code':'MAIN','chain_position_m':3}],'parent_child_positions':{}};lines={'R2':main}
+  align_splice_contacts([d],lines,{'MAIN':old})
+  self.assertEqual(d['feed']['xy'],[5,1]);self.assertEqual(lines['R2'].coords[-1],(5,1));self.assertEqual(d['retained'][0]['lo'],1);self.assertEqual(d['records'][0]['id'],'house');self.assertEqual(d['splice_kind'],'VM')
  def test_a_splice_is_placed_on_both_actual_cables(self):
   from shapely.geometry import LineString,Point,shape
   from vo_mofverbindingen import align_splice_contacts
@@ -20,6 +26,15 @@ class MofEnStraat(unittest.TestCase):
   from vo_mofverbindingen import existing_branch_evidence
   joints=[{'xy':[10,0],'handle':'real'}]
   self.assertIsNotNone(existing_branch_evidence([10,0],joints));self.assertIsNone(existing_branch_evidence([11,0],joints))
+
+ def test_local_tangent_contact_avoids_crossing_the_neighbour(self):
+  from shapely.geometry import LineString,shape
+  from vo_mofverbindingen import align_splice_contacts
+  from shapely.ops import substring
+  old=LineString([(-5,0),(5,10)]);root=old.project(__import__('shapely').geometry.Point(-2,3));d={'id':'R1','primary_code':'MAIN','new_codes':[],'feed':{'xy':[-2,3],'position_m':root},'retained':[{'code':'MAIN','lo':root,'hi':old.length,'geometry':substring(old,root,old.length).__geo_interface__}],'records':[{'code':'MAIN','chain_position_m':12}],'parent_child_positions':{}}
+  lines={'R1':LineString([(5,10),(5,5),(0,5),(-2,3)]),'R2':LineString([(5,4),(-5,4)])}
+  align_splice_contacts([d],lines,{'MAIN':old})
+  self.assertEqual(d['feed']['xy'],[0,5]);self.assertTrue(lines['R1'].intersection(lines['R2']).is_empty);self.assertTrue(shape(d['retained'][0]['geometry']).intersection(lines['R2']).is_empty)
 
  def test_a_shared_frontage_is_straightened_as_one_bundle(self):
   from shapely.geometry import LineString,Point,Polygon,box

@@ -33,10 +33,12 @@ def read_sources(config, read):
    if '+' in raw:
     size=raw.split('+')[0];kind=re.sub(r'[^\d]','',size)+('Al' if 'al' in size.lower() else 'Cu');combo=True
    else:kind=re.sub(r'[^\d]','',raw)+('Al' if 'al' in raw.lower() else 'Cu');combo=False
-   if kind not in ['150Al','95Al','50Al','50Cu']:continue
-   types[c]={'type':kind,'combo':combo};variants[c].add((kind,combo));evidence[c].append({'text':text,'handle':e.dxf.handle})
+   from reken_richtingen import CATALOGUE
+   if kind not in CATALOGUE:continue
+   types[c]={'type':kind,'combo':combo};variants[c].add((kind,combo));evidence[c].append({'text':text,'handle':e.dxf.handle,'type':kind,'combo':combo,'xy':list(e.dxf.insert)[:2]})
  circles=[e for e in doc.modelspace().query('INSERT') if e.dxf.name=='KA_K01' and region.covers(Point(e.dxf.insert.xy))]
  texts=list(doc.modelspace().query('TEXT[layer=="Aansluiting LS_OntwerpstroomKabel"]'));records=[]
+ buildings=[(f.get('id'),shape(f['geometry'])) for f in read(config['bgt']['pand'])['features'] if not f['properties'].get('eind_registratie') and not f['properties'].get('termination_date')]
  corrections={c['source_circle_handle']:c for c in config.get('source_corrections',[])}
  catalogue=json.loads((Path(__file__).parent.parent/'references/kader2024-categorieen.json').read_text(encoding='utf8'))['rows']
  for e in circles:
@@ -49,6 +51,7 @@ def read_sources(config, read):
   if correction and correction.get('planned_connection'):
    rec['planned_connection']=True;rec['tap']=rec['xy'];rec['source_issue']='Geplande aansluiting: categorie en locatie zijn projectinvoer, geen bestaand WFS-aansluitpunt.';records.append(rec);continue
   sf=min(services,key=lambda f:shape(f['geometry']).distance(p));sp=shape(sf['geometry']);rec['service_id']=sf['id'];rec['service_distance_m']=sp.distance(p)
+  same_building=[ident for ident,g in buildings if g.buffer(.5).covers(p) and g.buffer(.5).covers(sp)]
   candidates=[f for f in conns if re.search(r'functie\s+LS',f['properties'].get('omschrijving',''),re.I) and shape(f['geometry']).distance(sp)<.05]
   options=[]
   for f in candidates:
@@ -59,15 +62,21 @@ def read_sources(config, read):
    for f in candidates:
     cg=shape(f['geometry']);c,g=min(chains.items(),key=lambda item:cg.distance(item[1]));options.append((cg.distance(g),c,f,g))
    rec['source_issue']='LS-aansluitlabel ontbreekt op LS-hoofdkabel of wijst naar OV; geometrische kandidaat blijft te verifiëren.'
-  if options and rec['service_distance_m']<1:
+  if options and (rec['service_distance_m']<1 or (rec['service_distance_m']<8 and same_building)):
    gap,c,f,g=min(options,key=lambda x:x[0]);_,tap=nearest_points(shape(f['geometry']),g);rec.update(code=c,conn_id=f['id'],tap=list(tap.coords)[0],chain_position_m=g.project(tap),main_gap_m=gap)
+   if rec['service_distance_m']>=1:rec['source_coupling_evidence']={'basis':'Rondje en WFS-aansluitpunt binnen hetzelfde actieve BGT-pand; LS-aansluitkabel gekoppeld via label en echt hoofdkabelcontact','building_ids':same_building}
   else:rec['source_issue']='Geen betrouwbare bronkoppeling; categorie/positie controleren.';rec['tap']=rec['xy']
   records.append(rec)
  needed={r['code'] for r in records if r['code']}
  for c in needed:
   if c not in types:raise ValueError('KLIC-kabeltype ontbreekt: '+c)
-  if len(variants[c])>1:raise ValueError('Kabelcode bevat verschillende materiaalnotaties: splits gecontroleerde materiële stukken voor '+c)
+  if len(variants[c])>1:
+   from vo_materialen import material_intervals
+   intervals=material_intervals(c,chains[c],[f for f in active if code(f['properties'].get('label'))==c],evidence[c],CATALOGUE)
+   worst=min({p['type'] for p in intervals},key=lambda k:CATALOGUE[k]['Imax']);types[c]={'type':worst,'combo':any(p['combo'] for p in intervals),'material_segments':intervals}
  groups={c:{'code':c,'geometry':chains[c],'type':types[c]['type'],'combo':types[c]['combo'],'records':[r for r in records if r['code']==c],'source_evidence':evidence[c]} for c in needed}
+ for c,g in groups.items():
+  if 'material_segments' in types[c]:g['material_segments']=types[c]['material_segments']
  for c,g in groups.items():
   assigned={r.get('conn_id') for r in g['records']};outside=[]
   for f in conns:

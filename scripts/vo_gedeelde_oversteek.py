@@ -39,12 +39,18 @@ def merge_nearby_crossings(data,lines,road,obstacles,surfaces,region,pitch=.2):
    if j<=i or j in assigned or math.dist(a['xy'],b['xy'])>25:continue
    dot=sum(x*y for x,y in zip(a['road_axis'],b['road_axis']))
    if abs(dot)<.98:continue
+   normal=(-a['road_axis'][1],a['road_axis'][0]);across=abs((b['xy'][0]-a['xy'][0])*normal[0]+(b['xy'][1]-a['xy'][1])*normal[1])
+   if across>2.5:continue
    if any(g.buffer(.1).covers(Point(a['xy'])) and g.buffer(.1).covers(Point(b['xy'])) for g in components):group.append(j)
   if len(group)>1:clusters.append(group);assigned.update(group)
  for group in clusters:
-  keep=max(group,key=lambda i:len(sites[i]['lane_centres']));target=sites[keep];reference=min(target['lane_centres'],key=lambda n:order.index(n));axis=result[reference];moving=[n for i in group if i!=keep for n in sites[i]['lane_centres']];moving.sort(key=lambda n:order.index(n));base=moving[0];old=result[base];delta=(order.index(base)-order.index(reference))*pitch;guide=axis.offset_curve(delta,join_style=2,mitre_limit=10)
+  keep=max(group,key=lambda i:len(sites[i]['lane_centres']));target=sites[keep];reference=min(target['lane_centres'],key=lambda n:order.index(n));axis=result[reference];moving=[n for i in group if i!=keep for n in sites[i]['lane_centres']]
+  if len(set(moving))!=len(moving) or set(moving)&set(target['lane_centres']):continue
+  moving.sort(key=lambda n:order.index(n));base=moving[0];old=result[base];delta=(order.index(base)-order.index(reference))*pitch
   def cross_interval(g,site):
    pieces=g.intersection(road);parts=list(pieces.geoms) if hasattr(pieces,'geoms') else [pieces];parts=[p for p in parts if p.geom_type=='LineString' and p.length>1];p=min(parts,key=lambda p:Point(site['xy']).distance(p));return sorted([g.project(Point(p.coords[0])),g.project(Point(p.coords[-1]))])
+  _,ref_end=cross_interval(axis,target);guide=substring(axis,0,min(axis.length,ref_end+6)).offset_curve(delta,join_style=2,mitre_limit=10)
+  if guide.geom_type!='LineString':continue
   _,end=cross_interval(guide,target);head=substring(guide,0,end+.7);old_site=next(sites[i] for i in group if base in sites[i]['lane_centres']);_,old_end=cross_interval(old,old_site);join=old_end+4;a=tuple(head.coords[-1]);b=tuple(old.interpolate(join).coords[0]);free=surfaces.buffer(.2).difference(road.buffer(.05)).difference(obstacles.buffer(.25));connector=sidewalk_connection(a,b,free,region);candidate=LineString(list(head.coords)+list(connector.coords)[1:]+list(substring(old,join,old.length).coords)[1:])
   result[base]=candidate
   for name in moving[1:]:

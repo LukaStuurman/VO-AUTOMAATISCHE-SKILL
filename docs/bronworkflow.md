@@ -40,6 +40,14 @@ De modules scheiden broninventarisatie, terreinroutes, richtingkeuze, gezamenlij
 
 Een afzonderlijke evaluator leest de opgeslagen kandidaat en de gebruikersoplossing. Vergelijk aansluit-ID's, zekeringen, behouden delen, overzetters en de werkelijk opgeslagen polylines. Meet corridorovereenkomst in beide richtingen met verklaarde tolerantie. Bewaar ook mislukte kandidaten en de algemene regelwijzigingen. Een kalibratie op hetzelfde station bewijst reproduceerbaarheid uit bronnen; test vervolgens een ander station voordat je algemene nauwkeurigheid claimt.
 
+## Bronafwijkingen en materiaalstukken
+
+Een verschoven rondje blijft alleen automatisch gekoppeld wanneer rondje en WFS-servicepunt binnen hetzelfde actieve BGT-pand vallen en de aansluitkabel met dezelfde code werkelijk op de LS-hoofdkabel aansluit. Bewaar de bewijs-ID's. Afstand alleen is onvoldoende. Leg nieuwe geplande aansluitingen zonder bestaand WFS-servicepunt vast als expliciete projectinvoer met categorie en locatie.
+
+Eén hoofdkabelcode kan LS- en LS/OV-delen met verschillende materialen hebben. Koppel KLIC-labels aan de afzonderlijke WFS-lijnstukken met overeenkomende functie; toets tegenstrijdige labels en volledige lengtedekking. Bereken 35Cu-aftakken en andere behouden materiaalstukken afzonderlijk per elektrisch pad. Bepaal `150Al+` uit het behouden combideel aan het echte nieuwe mofcontact. Een combideel elders op dezelfde code maakt de nieuwe aanloop niet automatisch een combikabel. Werkelijke tussengelegen bronmoffen blijven zichtbaar; teken geen bestaande mof uitsluitend omdat twee WFS-records of materiaalintervallen elkaar raken.
+
+Splits een broninterval opnieuw bij berekende capaciteitsproblemen, met alle oorspronkelijke aansluitingen eenmaal en beschikbare stationsposities als grens. Kies scheidingen uit de aansluitingstopologie; gewenste voorbeeldzekeringen zijn geen invoer. Geometrische herstelstappen mogen niet terugschieten door een beschermde stationsuitloop. Controleer de native objecten uit de lege tekening en de ongewijzigde xrefs na opslaan, inclusief kabelkruisingen met de aangrenzende stations.
+
 ## Lange rechte bundels en mofcorrecties
 
 Maak de mofinventaris vóór het verwijderen van ongebruikte aftakken. `vo_kabelafwerking.py` behoudt een bewezen bron-aftakmof met Bestaand, tekent een kort afgedopt stuk en een nieuwe eindmof, en weigert dit als een andere richting het aftakdeel gebruikt of een aansluiting erop achterblijft. Controleer ook het kabeluiteinde aan de andere zijde van iedere scheiding, inclusief een buurgebied. Knippen en verwijderen betreft uitsluitend eigen kabelobjecten in de hoofdtekening. Externe referenties en hun koppelingen blijven intact.
@@ -67,3 +75,25 @@ Pas na `vo_annotaties.py` de tekstafwerking met `vo_tekst_en_draworder.py` toe. 
 Werk vóór de tekstafwerking het eigen afzekeringsblok af met `vo_afzekeringsblok.py`. Maak een private blokkopie, zet de twaalf rondjes exact op één verticale as en lijn de attributen ernaast uit. Bepaal plusjes uit aanwezige ampère-afzekering in de attributen, ook voor tampen; vrije velden blijven leeg. De twee pluslijnen gebruiken de rondjeslaag en zijn horizontaal/verticaal gecentreerd. Meet de totale werkelijke blok- én attributentekstextents en voeg daarachter één wipeout met marge toe. Geef de wipeout de eerste interne redraw-positie, rondjes/plusjes daarna. Controleer na opslaan/teruglezen de kolom, plusjes, lagen en dekking van ieder attribuut, ook de langste tekst. Bekijk het afzekeringsblok apart.
 
 Voor de plusjes gebruiken beide lijnhelften de volledige cirkelstraal. De vier eindpunten moeten op de omtrek liggen; de controle weigert kortere lijnen binnen de cirkel.
+
+## Herstellen uit de eigen controle
+
+Een geplande aansluiting zonder WFS-servicepunt hoeft niet naar een nieuwe hoofdkabel. `vo_geplande_aansluitingen.py` vergelijkt alle actieve nieuwe en behouden hoofdkabels en kiest een dichtbijgelegen contact dat met de extra belasting past. Bewaar de nieuwe service als gepland, met eigen locatie, gekozen hoofdcode/contact en aansluitafstand; maak geen fictief WFS-servicepunt of bestaande aansluitkabel. Een koppeling op behouden hoofdtracé krijgt geen overzetter. Neem kabelverbruik en kabelopwek afzonderlijk in de capaciteitstoets mee. De geplande serviceleiding telt niet als hoofdkabel-rekenlengte.
+
+Gebruik uitsluitend de eigen opgeslagen bronkandidaat en dezelfde oorspronkelijke bronnen. Kies de betrokken richtingen uit echte fouten in het controleblad; richtingnummers, mofposities of groepsaantallen uit een uitgewerkte doeltekening zijn geen herstelinput.
+
+Een nieuwe aanloop die een behouden hoofdkabel kruist vraagt eerst een topologische keuze. `vo_herverdeel_bestaand.py` onderzoekt een aansluitingsvrije scheidingsopening en overdracht naar een aangrenzende behouden voeding. Aansluitingen die op dezelfde fysieke kabel blijven krijgen geen overzetter. Bescherm ook WFS-aansluitingen buiten de eigen groep, andere stations en actieve OV; verwijder geen beschermd stuk om een geometriecontrole te laten slagen. Herbereken ontvangende én afgevende richting en het deelverwijderregister.
+
+`vo_andere_mofaanloop.py` onderzoekt voeding vanaf de andere zijde van hetzelfde gebruikte kabeldeel. Een kortere aanloop is alleen bruikbaar als hij alle aansluitingen en behouden paden blijft voeden en geen nieuwe conflicten maakt. Leg de nieuwe voedingszijde vast en bepaal daarna de richtingvolgorde opnieuw uit de volledige elektrische route.
+
+`vo_aanloop_herstel.py` biedt gerichte geometrische herstelkeuzes. `public_feeder_tail` zoekt een openbare omloop rond een beschermd bestaand kabeluiteinde. `shared_feeder` bouwt een parallelle aanloop uit één eigen referentierichting en vertakt pas voor de eigen mof. `pavement_corner` vereenvoudigt/verplaatst alle betrokken lanes samen op een door de eigen controle gevonden stoepbocht. Gebruik de terreinobstakels, toegestane oppervlakken en echte behouden kabels als grenzen. Deze functies wijzigen geen aansluitingstoewijzing en accepteren een aanloop alleen met een nieuwe kabelberekening. Voer daarna altijd de volledige opgeslagen-CAD-controle uit; een lokale verbetering kan elders een fout veroorzaken.
+
+Bewaar voldoende ruimte voor de **hele** bundel: een boomvrije binnenste kabel bewijst niet dat de 0,20 m offsetkabel ook boomvrij is. Gebruik bij een buitenste kabelconflict een grotere corridorafstand voor de referentielijn, bouw opnieuw de gezamenlijke offsets en toets opnieuw. Verplaats niet alleen de buitenste kabel met losse knikken.
+
+Bij haaks maken kan een rechte verbinding op de overzijde een tuin of boomcontour raken. `perpendicular_crossings` kan met expliciete `surfaces` een boomvrije voetpadverbinding voor en na de rechte rijbaanpassage zoeken. Werk daarna de andere lanes uit dezelfde oversteekas bij. Een contact uitsluitend **op** de geometrische rijbaangrens is geen passage door de rijbaan; de controle sluit alleen numerieke grenscoïncidentie op micrometerniveau uit. Schuine passages door het wegvlak blijven afgekeurd.
+
+Bij een nieuwe voeding op een behouden kabel komt de mof op het eerste bruikbare echte contact als alle eigen hoofd-/aftaklasten aan de behouden zijde liggen. Laat de nieuwe kabel niet door die bronkabel kruisen en teruglopen naar een voorlopige mof verderop. `align_splice_contacts` stopt daar, knipt uitsluitend de ongebruikte eigen arm en bepaalt opnieuw VM/AM.
+
+Voor ontbrekende BGT-dekking bij het stationsfront is een expliciet onderbouwd projectfeit nodig. Bewaar bevestigde open grond met locatie en herkomst in `source_station_access`; maak niet automatisch alle onbekende grond vrij. Bekende bomen, tuinen en panden blijven obstakels.
+
+Een eigen checkpoint na een offsetbewerking wordt met de **actuele** geometrie hervat. Bewaar de fase vóór de bewerking apart, verwijder het fasekenmerk na uitvoering en synchroniseer `display_main` vóór de stationsuitloop. Lees opgeslagen hoofdkabels via hun eigen gegenereerde handles terug; een afstandsfilter rond het blok-insertpunt kan geldige fysieke buitenpoorten missen. Bronbollen, native buurontwerpen en xrefs blijven gelijk.

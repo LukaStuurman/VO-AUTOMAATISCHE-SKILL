@@ -15,6 +15,7 @@ class SurfaceRouter:
   from vo_topografie import topography_obstacles
   self.topo=topography_obstacles(config,sources['region']);self.topo_obstacles=unary_union([self.topo['trees'],self.topo['uncertain_contours']])
   self.erf=unary_union([shape(f['geometry']) for f in fs('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')=='erf']).difference(self.station)
+  self.erf=self.erf.difference(self.walk)
   clearance=self.rules['route_clearance_m'];self.physical_obstacles=unary_union([self.woody,self.trees.buffer(self.rules['tree_body_radius_m']),self.buildings,self.topo_obstacles]).difference(self.station);self.blocked=unary_union([self.woody.buffer(clearance),self.trees.buffer(self.rules['tree_body_radius_m']+clearance),self.buildings.buffer(clearance),self.topo_obstacles.buffer(clearance)]).difference(self.station)
   self.natural_obstacles=self.physical_obstacles
   erf_margin=self.rules.get('bundle_erf_margin_m',.1)

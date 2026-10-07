@@ -9,10 +9,19 @@ def preview(data,out):
  from matplotlib.collections import LineCollection
  from matplotlib.patches import Polygon as MplPolygon
  from ezdxf import path as ep,bbox
- from shapely.geometry import Polygon
+ from shapely.geometry import Polygon,shape,box
+ from shapely.ops import substring,unary_union
  cfg=data['config'];main=ezdxf.readfile(data['drawing']['file']);klic=ezdxf.readfile(cfg.get('klic_display_dxf',cfg['klic_dxf']));topo=ezdxf.readfile(cfg['topo_dxf']);region=Polygon(main.entitydb[cfg['boundary_handle']].get_points('xy'));station=bbox.extents([main.entitydb[cfg['station_handle']]])
  x0,y0,x1,y1=region.bounds;cx,cy=station.center.x,station.center.y
- bounds={'Overzicht':(x0-5,x1+5,y0-5,y1+5),'Stationsdetail':(cx-16,cx+104,cy-50,cy+50),'Stationsuitloop':(cx-10,cx+42,cy-36,cy+14)};out=Path(out)
+ def extent(geometry,padding,min_width=0,min_height=0):
+  a,b,c,d=geometry.bounds;mx,my=(a+c)/2,(b+d)/2;width=max(min_width,c-a+2*padding);height=max(min_height,d-b+2*padding);return (mx-width/2,mx+width/2,my-height/2,my+height/2)
+ mains=[shape(d['display_main']) for d in data['directions']];body=box(station.extmin.x,station.extmin.y,station.extmax.x,station.extmax.y);legend_x,legend_y=data['drawing']['legend_center'];legend=box(legend_x-11,legend_y-13,legend_x+11,legend_y+13)
+ near=unary_union([substring(g,0,min(95,g.length)) for g in mains]+[body,legend]);exit_area=unary_union([substring(g,0,min(20,g.length)) for g in mains]+[body]+[shape(r['geometry']) for r in data.get('station_tamps',[])])
+ bounds={'Overzicht':(x0-5,x1+5,y0-5,y1+5),'Stationsdetail':extent(near,7),'Stationsuitloop':extent(exit_area,4,28,22)}
+ shared=[s for s in data.get('crossing_sites',[]) if len(s['lane_centres'])>1]
+ if shared:
+  s=max(shared,key=lambda s:len(s['lane_centres']));x,y=s['xy'];bounds['Bundeldetail']=(x-18,x+18,y-16,y+16)
+ bounds['Afzekeringen']=extent(legend,1);out=Path(out)
  for name,bb in bounds.items():
   fig,ax=plt.subplots(figsize=(16,12),dpi=190);ax.set_xlim(bb[:2]);ax.set_ylim(bb[2:]);ax.set_aspect('equal');ax.ticklabel_format(useOffset=False,style='plain');ax.tick_params(labelsize=6)
   def inside(p):return bb[0]<=p[0]<=bb[1] and bb[2]<=p[1]<=bb[3]
@@ -38,6 +47,7 @@ def preview(data,out):
      name=data['drawing']['symbol_types'].get(e.dxf.handle,e.dxf.name)
      if source=='main' and 'MOF' in name.upper():foreground=9
      elif source=='main' and name=='RT 1-12':foreground=6
+     elif source=='main' and name=='OVERZETTER':foreground=4
      if depth<4:
       try:
        for v in e.virtual_entities():walk(v,ci if source=='main' else inherit,depth+1,layer,foreground)

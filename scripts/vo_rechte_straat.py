@@ -37,10 +37,11 @@ def straighten_street_bundle(lines,names,obstacles,surfaces,road,region,pitch=.2
     if signs and min(signs)<-.05 and max(signs)>.05:valid=False;break
     replacements[n]=candidate;changed.append(middle)
    if not valid or len(replacements)!=len(chosen):continue
+   if all(g.hausdorff_distance(lines[n])<.001 for n,g in replacements.items()):continue
    trial=dict(lines,**replacements)
    # Local changes must not introduce any cable crossings.
    if any(not g.intersection(h).difference(lines[n].intersection(lines[m]).buffer(.01)).is_empty for n,g in replacements.items() for m,h in trial.items() if n!=m):continue
-   clearance=min(g.distance(local_obstacles) for g in changed);score=L+min(clearance,1.5)*5-abs(offset)*.1
+   clearance=min(g.distance(local_obstacles) for g in changed);road_length=sum(g.intersection(road).length for g in changed);score=L+min(clearance,1.5)*5-abs(offset)*.1-road_length*100
    if pair_best is None or score>pair_best[0]:pair_best=(score,trial,{'directions':list(replacements),'straight_length_m':L,'offset_m':offset,'clearance_m':clearance,'start':list(a),'end':list(b),'old_vertices':j-i+1,'new_vertices':2})
   if pair_best:
    best=pair_best;break
