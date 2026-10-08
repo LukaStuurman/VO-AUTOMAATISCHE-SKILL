@@ -1,11 +1,11 @@
 ---
 name: enexis-vo-stationsgebieden
-description: Maak of verbeter Enexis LS-VO-stationsgebieden uit oorspronkelijke CAD, KLIC/WFS, BGT en kadergegevens. Gebruik voor hergebruik, splitsingen, gezamenlijke tracés, moffen, overzetters en kabel-/trafoberekeningen. Vergelijk een uitgewerkt doelstation pas achteraf.
+description: Maak of verbeter Enexis LS-VO-stationsgebieden uit oorspronkelijke CAD, KLIC/WFS, BGT en kadergegevens. Gebruik voor hergebruik, splitsingen, gezamenlijke tracés, moffen, overzetters, kabel-/trafoberekeningen en ingevulde kader-Excels per richting. Vergelijk een uitgewerkt doelstation pas achteraf.
 ---
 
 # LS-VO uit brongegevens
 
-Gebruik Luka's [universele regels](docs/universele-info.md) en [bronworkflow](docs/bronworkflow.md). Een tekenopdracht vraagt een echte DXF/DWG met bekeken overzicht en stationsdetail, aansluitregister en controles. Alleen instructies of berekeningen voldoen niet.
+Gebruik Luka's [universele regels](docs/universele-info.md) en [bronworkflow](docs/bronworkflow.md). Een tekenopdracht vraagt een echte DXF/DWG met bekeken overzicht en stationsdetail, aansluitregister, controles en een **ingevulde kader-Excel per richting met gezamenlijk trafoblad**. Alleen instructies, een leeg template of losse JSON/CSV-berekeningen voldoen niet. Volg voor de werkmap [kader-Excel invullen](docs/kader-excel.md).
 
 ## Ontwerpen vanaf een leeg stationsgebied
 
@@ -21,6 +21,7 @@ De invoer bestaat uit oorspronkelijke CAD, stationsuitrusting/grens, KLIC, WFS, 
 8. Bepaal na toewijzing van **alle** richtingen de unie van gebruikte delen per bestaande kabeldeel. Alleen ongebruikte delen mogen geknipt/verwijderd worden. Houd geen aansluitingsvrije staart aan een aftakmof zonder benodigde doorvoeding. Bescherm andere richtingen, externe voedingen, onzeker gebruik en actieve OV op combi. Wijzig de oorspronkelijke KLIC/WFS niet.
 9. Vertaal categorieën afzonderlijk naar kabel-/trafowaarden. Trafoverbruik en -opwek apart; limiet ongerond **kVA / 0,23 / 3**. Niet-eenduidige stroomwaarden vragen een expliciete categorie.
 10. Teken uit de gecontroleerde structuur en lees de CAD terug. Een ongewijzigd bestaand einde met een KLIC-eindmof krijgt geen nieuwe eindmof. Bij vervanging van een fysieke ontwerpeindlocatie verwijder je de oude ontwerp-mof én tekst en werk je de oude conceptlijn bij. Toets opnieuw lengtes/capaciteit, kruisingen, moffen, overzetters, vegetatie, rechte oversteken, grondpositie en leesbaarheid. Herstel mislukkingen; ontbrekende eigendom/wortelzones/bronverbindingen blijven concrete open punten.
+11. Vul de **officiële Excel van het gekozen kader voor iedere richting** in vanuit het definitieve aansluitregister en de gecontroleerde CAD/rekenpaden. Haal de werkmap uit `src/Enexis.KabelChecker.AutoCAD/Resources` van [Enexis Kabelchecker](https://github.com/LukaStuurman/AutoCAD-Enexis-kabels-checker), bewaar bronversie/hash en werk op een projectkopie. Vul categorieaantallen, kabeltypes, rekenlengtes en belastingprofiel in; toets hoofd- en aftakpaden apart en neem de laagste toegestane afzekering voor de richting. Vul ook het trafoblad uit dezelfde unieke categorieaantallen, met afzonderlijk verbruik/opwek. Behoud opmaak en formules, verwijder voorbeeldinvoer, herbereken en vergelijk de opgeslagen Excel met tekening en richting-/trafoberekening. Lever de `.xlsx` mee; zonder ingevulde, gecontroleerde werkmap is de volledige LS-VO-oplevering niet af.
 
 Uitgewerkte buren leveren grenzen, bestaande voedingen en stijl. Zonder ingevulde buren gebruik je `assets/cad-stijl.json` en bewaak je haalbaarheid voor overige stations. Kopieer geen aantallen, stationnummers of bijzondere RT-bezetting uit een voorbeeld.
 

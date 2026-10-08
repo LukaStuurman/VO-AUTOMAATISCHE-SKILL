@@ -4,6 +4,7 @@ LS-VO maken uit oorspronkelijke CAD, KLIC/WFS, BGT/topografie en kadergegevens, 
 
 - [Skill](SKILL.md) en [universele regels](docs/universele-info.md)
 - [Bronworkflow en invoer](docs/bronworkflow.md)
+- [Verplichte kader-Excel per richting en trafo](docs/kader-excel.md)
 - [Bronontwerpgenerator](scripts/ontwerp_uit_bronnen.py)
 - [Lokale CAD-stijl zonder routes/keuzes](assets/cad-stijl.json)
 - [Kalibratie en bewezen bereik](docs/kalibratie-bronontwerp.md)

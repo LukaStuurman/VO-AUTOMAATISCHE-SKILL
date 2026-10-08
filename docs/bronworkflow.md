@@ -16,6 +16,8 @@ Bij een correctie op een bestaand ontwerp kan `rules.refinement_scope` de door d
 
 Benodigd: Python met ezdxf, shapely, numpy, scipy en matplotlib.
 
+De oplevering bevat daarnaast verplicht de ingevulde officiële kader-Excel, per richting en met gezamenlijk trafoblad. Volg [kader-Excel invullen](kader-excel.md) voor de bronbestanden in Enexis Kabelchecker, de verschillende bladindelingen, afzonderlijke aftakcontroles en de vergelijking met het definitieve ontwerp. De bronpipeline genereert deze `.xlsx` nog niet zelf; voer dit onderdeel aanvullend uit voordat je de volledige opdracht als afgerond meldt.
+
 ## Een eigen bronkandidaat corrigeren
 
 Gebruik `herzie_bronontwerp.py vorige-kandidaat.json broninvoer.json --output resultaat` voor een gerichte tracé-/symboolcorrectie op een eigen eerder uit bronnen gemaakte kandidaat. De aansluitinventaris moet gelijk zijn; groepen en bestaande voedingen blijven behouden. Een uitgewerkte gebruikersoplossing of referentiegestuurde reconstructie is niet toegestaan als vorige kandidaat. Dit is een revisie, geen nieuwe onafhankelijke ontwerptest vanaf nul.
