@@ -1,3 +1,5 @@
+> Herbeoordeling 8 oktober 2026: de onderstaande eerdere eindcontrole gebruikte een BGT-selectie die het volledige gebied 011.602 niet dekte. Daardoor bewijst die uitslag geen gebouwvrij tracé. Ook ontbraken controles op buitenliggende gebruikte oude kabelpaden en tussenliggende richtingen bij huisaansluitingen. De eerdere kandidaat heeft deze tekortkomingen en wordt hersteld met een volledige BGT-selectie en uitgebreidere controles. De hieronder genoemde historische uitslagen zijn geen actuele goedkeuring van dat ontwerp.
+
 # Getest bereik van het bronontwerp
 
 Op 7 oktober 2026 is de workflow toegepast op een leeg gemaakt stationsgebied 011.602. De eigen opgeslagen eindkandidaat slaagt voor de opgenomen CAD- en kabelcontroles. Er zijn 123 unieke aansluitingstoewijzingen, tien gevoede richtingen en twee tampen. Trafoverbruik 866,9 A en opwek 892,8 A blijven afzonderlijk onder 630 / 0,23 / 3 = 913,043478 A. Alle richtingberekeningen passen tot hun fysieke kabeluiteinden.

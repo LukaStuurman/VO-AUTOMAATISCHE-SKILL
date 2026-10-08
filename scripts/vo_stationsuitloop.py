@@ -70,7 +70,10 @@ def build_station_exit(data,doc,obstacles=None,surfaces=None,region=None,road=No
  for index,members in enumerate(groups):
   bank='left' if index==0 else 'right' if index==len(groups)-1 else 'middle_'+str(index);representative=members[len(members)//2];guide=lines['R'+str(representative)]
   samples=[guide.interpolate(i*.5).coords[0] for i in range(1,int(min(guide.length,cut+10)/.5)+1)]
-  candidates=[p for p in samples if not station_box.covers(Point(p)) and abs((p[0]-c[0])*u[0]+(p[1]-c[1])*u[1])>=max(3,1.2+len(members)*pitch)]
+  # Required lateral room follows bank width, rather than a fixed 3 m turn.
+  # A narrow bank can join a nearly normal public corridor just outside front.
+  lateral_room=max(1.5,.4+len(members)*pitch/2)
+  candidates=[p for p in samples if not station_box.covers(Point(p)) and abs((p[0]-c[0])*u[0]+(p[1]-c[1])*u[1])>=lateral_room]
   if not candidates:raise ValueError('Geen bruikbare haakse stationscorridor met kort vertrekstuk.')
   b=candidates[0];depth=(b[0]-c[0])*normal[0]+(b[1]-c[1])*normal[1];along=(b[0]-c[0])*u[0]+(b[1]-c[1])*u[1];along+=data['config']['rules'].get('station_corner_lateral_adjust_m',0);depth+=data['config']['rules'].get('station_corner_outward_adjust_m',0);corner=(c[0]+along*u[0]+depth*normal[0],c[1]+along*u[1]+depth*normal[1]);p=(c[0]+straight*normal[0],c[1]+straight*normal[1]);q=(p[0]+along*u[0],p[1]+along*u[1]);spine=LineString([c,p,q,corner]);phase=min(3.5,spine.length-.5)
   delta=(representative-6.5)*pitch;physical=spine.offset_curve(delta,join_style=2,mitre_limit=10)

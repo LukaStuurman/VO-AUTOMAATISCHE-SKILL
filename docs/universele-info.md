@@ -72,7 +72,7 @@ De gecontroleerde hoofdkabeldata bevatten bijvoorbeeld `Laagspanningskabel met f
 
 Bewaar de oorspronkelijke `omschrijving` en de herleide functie bij ieder kabelobject in het register. Controleer daarnaast de status: een buitengebruikgesteld of fictief stuk wordt niet automatisch als actieve voeding aangemerkt. Een functie LS/OV bepaalt niet zelfstandig de doorsnede, het materiaal of de noodzaak van een nieuwe combikabel. Bij verschillen tussen WFS en KLIC worden peildatum en brongegevens naast elkaar vastgelegd en wordt de afwijking uitgezocht. De actuele bestaande situatie vervangt niet stilzwijgend een al vastgesteld nieuw ontwerp bij een buurstation.
 
-Volg verbonden kabeldelen buiten een rode grens door tot de werkelijke elektrische scheiding. De gebiedsgrens is een ruimtelijke grens en geen rekenkundig kabeluiteinde. Leg bij hergebruik vast hoe de kabel van zijn bestaande voeding wordt gescheiden en aan de nieuwe richting wordt gekoppeld. Beoordeel ook wat er met de achterblijvende aansluitingen op die bestaande voeding gebeurt.
+Volg verbonden kabeldelen buiten een rode grens voor de broninventarisatie door tot de werkelijke elektrische scheiding. Het ontworpen gebruikte bestaande pad moet binnen het eigen trafogebied blijven, ook wanneer een buitenliggende lus uitsluitend huizen binnen de grens zou voeden. De gebiedsgrens is een ruimtelijke grens en geen rekenkundig kabeluiteinde. Leg bij hergebruik vast hoe de kabel van zijn bestaande voeding wordt gescheiden en aan de nieuwe richting wordt gekoppeld. Beoordeel ook wat er met de achterblijvende aansluitingen op die bestaande voeding gebeurt.
 
 **Uitkomst:** één aansluitregister met de keten ontwerpstroomrondje → aansluitpunt → aansluitkabel → hoofdkabel/aftak → KLIC-kabeltype, en een onderbouwd overzicht van de kabelgroepen, zelfstandige richtingen, aftakken, bestaande voedingen en mogelijke scheidingspunten. Deze oorspronkelijke kabeltoewijzing is ook de basis voor de latere beslissing over overzetters.
 
@@ -116,6 +116,8 @@ De volledige categorietabel komt uit de bronwerkmap. De voorbeelden hierboven zi
 **Bij geen uitgewerkte stations:** pas de voorlopige stationsverdeling aan totdat alle stations kunnen voldoen, met uitvoerbare kabelroutes. **Bij uitgewerkte buren:** beoordeel eerst oplossingen binnen het nog uit te werken gebied; reken een overdracht aan de grens voor beide betrokken stations door.
 
 ## 5. Kabelrichtingen opbouwen en hergebruik kiezen
+
+Vervang een bestaand deel korter dan 25 m dat minder dan vijf aansluitingen voedt bij voorkeur door nieuw 150Al. Tel de daadwerkelijk downstream gevoede aansluitingen, inclusief behouden aftakken, en toets opnieuw na knippen/herverdeling. Meer dan vijf aansluitingen kan behoud rechtvaardigen. Behoud geen lege staart om 25 m te halen. Werk bij vervanging de belasting, moffen en overzetters opnieuw bij.
 
 Onderzoek welke bestaande kabelgroepen en kabelstukken behouden kunnen worden. Beoordeel de bestaande kabels inclusief hun dunnere aftakken; een bruikbare hoofdstreng kan door een zijtak toch een lagere afzekering krijgen.
 

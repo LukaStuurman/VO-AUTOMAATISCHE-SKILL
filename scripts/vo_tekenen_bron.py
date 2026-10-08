@@ -10,6 +10,8 @@ def draw_source_design(data,out):
  from shapely.ops import unary_union,substring
  from reken_richtingen import calculate_path,CATALOGUE
  from vo_terrein import unused_parts
+ # Fresh host generation cannot reuse symbol handles from a prior candidate.
+ data.pop('overzetter_layout',None)
  cfg=data['config'];doc=ezdxf.readfile(cfg['base_dxf']);msp=doc.modelspace();region=Polygon(doc.entitydb[cfg['boundary_handle']].get_points('xy'));station=bbox.extents([doc.entitydb[cfg['station_handle']]]);station_box=box(station.extmin.x,station.extmin.y,station.extmax.x,station.extmax.y)
  data['directions'].sort(key=lambda d:int(d['id'][1:]))
  from vo_stijl import style_templates
@@ -25,7 +27,7 @@ def draw_source_design(data,out):
  def active_features(name):
   return [f for f in json.loads(Path(cfg['bgt'][name]).read_text(encoding='utf8'))['features'] if not f['properties'].get('eind_registratie') and not f['properties'].get('termination_date')]
  topo=topography_obstacles(cfg,region)
- obstacles=unary_union([shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='woody']+[shape(f['geometry']).buffer(cfg['rules']['tree_body_radius_m']) for f in active_features('vegetatieobject_punt')]+[shape(f['geometry']) for f in active_features('vegetatieobject_vlak')]+[topo['trees'],topo['uncertain_contours']]).difference(station_box)
+ obstacles=unary_union([shape(f['geometry']) for f in active_features('begroeidterreindeel') if vegetation_class(f['properties'])=='woody']+[shape(f['geometry']).buffer(cfg['rules']['tree_body_radius_m']) for f in active_features('vegetatieobject_punt')]+[shape(f['geometry']) for f in active_features('vegetatieobject_vlak')]+[shape(f['geometry']) for f in active_features('pand')]+[topo['trees'],topo['uncertain_contours'],topo['buildings']]).difference(station_box)
  erf=unary_union([shape(f['geometry']) for f in active_features('onbegroeidterreindeel') if f['properties'].get('fysiek_voorkomen')=='erf']).difference(station_box)
  walk=unary_union([shape(f['geometry']) for f in active_features('wegdeel') if f['properties'].get('functie') in ['voetpad','voetgangersgebied','voetpad op trap','inrit']])
  erf=erf.difference(walk.buffer(cfg['rules'].get('drawing_stoep_tolerance_m',0)))

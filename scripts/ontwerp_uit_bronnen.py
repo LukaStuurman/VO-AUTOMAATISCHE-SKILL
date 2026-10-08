@@ -35,6 +35,9 @@ def main():
  from shapely.geometry import LineString,Point
  def read(p):return json.loads(Path(p).read_text(encoding='utf8'))
  started=time.monotonic();sources=read_sources(cfg,read)
+ from vo_harde_voorwaarden import bgt_coverage
+ coverage_errors=bgt_coverage(cfg,sources['region'])
+ if coverage_errors:raise ValueError('Onvolledige of niet geverifieerde BGT-invoer: '+str(coverage_errors))
  for e in sources['doc'].modelspace().query('LWPOLYLINE'):
   if e.dxf.layer.startswith('Aansluiting LS K') and len(e)>1:
    if LineString(e.get_points('xy')).distance(Point(sources['station_center']))<2:raise ValueError('Doelstation bevat al nieuwe kabelroutes; kies de oorspronkelijke lege bron.')

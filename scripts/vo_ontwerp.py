@@ -136,6 +136,7 @@ def design(s,router,cfg,_partitions=None,_depth=0):
     # trench several times. Move the joint along the old main before replacing
     # all that cable; compare the retained downstream piece as a fixed route.
     retained_run=substring(g,min(own+retained_joins+[pos]),max(own+retained_joins+[pos]))
+    if not s['region'].buffer(.001).covers(retained_run):continue
     other_feeds=[other['feed']['path'] for other in directions if other is not d and other.get('feed')]
     for route in core+other_feeds:
      hit=retained_run.intersection(route)
@@ -186,6 +187,11 @@ def design(s,router,cfg,_partitions=None,_depth=0):
       if math.dist(points[-1],section_points[0])>.01:points.append(section_points[0])
       points.extend(section_points[1:]);r['new_tap']=points[-1];rebuilt.append(LineString(points));previous=r['tap']
     d['new_paths']=rebuilt
+ # After clipping to the genuinely used interval, reconsider short sparse reuse.
+ from vo_harde_voorwaarden import short_reuse
+ from vo_kort_hergebruik import replace_short_primary
+ for d in directions:
+  if short_reuse([d]):replace_short_primary(d,router)
  # A planned service can connect to a retained LS main as well as a new main.
  from vo_geplande_aansluitingen import assign_planned
  assign_planned(s['records'],directions,{c:g['geometry'] for c,g in groups.items()},rules.get('connection_end_clearance_m',.6))
